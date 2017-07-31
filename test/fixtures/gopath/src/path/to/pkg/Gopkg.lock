@@ -11,3 +11,9 @@
   packages = ["tomato", "cucamba"]
   revision = "b6ffb7d62206806b573348160795ea16a00940a6"
 
+[[projects]]
+  name = "gitpub.com/meal/dinner"
+  packages = ["."]
+  revision = "2ebf14b5ac2969032b6c7f6f3e9ff1b2a8db0075"
+  version = "v0.0.7"
+

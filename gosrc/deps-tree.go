@@ -41,10 +41,11 @@ func (p *Pkg) Resolve() {
 	if name == "" {
 		return
 	}
+	p.Depth = p.depth()
 
-	// Stop resolving imports if we've reached max depth or found a duplicate.
+	// Stop resolving imports if we've reached a loop.
 	var importMode build.ImportMode
-	if p.Tree.hasSeenImport(name) {
+	if p.Tree.hasSeenImport(name) && p.isAncestor(name) {
 		importMode = build.FindOnly
 	}
 
@@ -62,8 +63,6 @@ func (p *Pkg) Resolve() {
 
 	// Update the name with the fully qualified import path.
 	p.FullImportPath = pkg.ImportPath
-
-	p.Depth = p.depth()
 
 	// If this is an internal dependency, we don't resolve deeper
 	if pkg.Goroot {
@@ -127,6 +126,20 @@ func (p *Pkg) depth() int {
 	}
 
 	return p.Parent.depth() + 1
+}
+
+// isAncestor goes recursively up the chain of Pkgs to determine if the name provided is ever a
+// parent of the current Pkg.
+func (p *Pkg) isAncestor(name string) bool {
+	if p.Parent == nil {
+		return false
+	}
+
+	if p.Parent.Name == name {
+		return true
+	}
+
+	return p.Parent.isAncestor(name)
 }
 
 // cleanName returns a cleaned version of the Pkg name used for resolving dependencies.
