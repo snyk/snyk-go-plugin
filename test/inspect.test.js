@@ -21,6 +21,8 @@ test('inspect', function (t) {
       t.test('root pkg', function (t) {
         t.match(pkg, {
           name: 'path/to/pkg',
+          version: '0.0.0',
+          from: ['path/to/pkg@0.0.0'],
         }, 'root pkg')
         t.end();
       });
@@ -39,6 +41,7 @@ test('inspect', function (t) {
               version: '#b6ffb7d62206806b573348160795ea16a00940a6',
             },
           },
+          from: ['path/to/pkg@0.0.0', 'gitpub.com/food/salad@1.3.7'],
         });
 
         t.end();
@@ -48,5 +51,6 @@ test('inspect', function (t) {
 
 function chdirToPkg(pkgPathArray) {
   process.env['GOPATH'] = path.resolve(__dirname, 'fixtures', 'gopath');
-  process.chdir(path.resolve(__dirname, 'fixtures', 'gopath', 'src', ...pkgPathArray));
+  process.chdir(
+    path.resolve(__dirname, 'fixtures', 'gopath', 'src', ...pkgPathArray));
 }
