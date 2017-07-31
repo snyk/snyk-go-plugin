@@ -6,6 +6,8 @@ function main() {
   console.log('Inspecting ', './' + targetFile);
   plugin.inspect('.', targetFile).then(function (result) {
     console.log('\ninspect results:\n\n', JSON.stringify(result, null, 2));
+  }).catch(function (error) {
+    console.log('Error:', error);
   });
 
 };

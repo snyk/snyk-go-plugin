@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"go/build"
 	"os"
 	"path"
@@ -53,6 +54,7 @@ func (p *Pkg) Resolve() {
 	if err != nil {
 		// TODO: Check the error type?
 		p.Resolved = false
+		p.Tree.rememverUnresolvedPkg(name)
 		return
 	}
 	p.Raw = pkg
@@ -193,6 +195,8 @@ type Tree struct {
 
 	ResolveTest bool
 
+	UnresolvedPkgs map[string]struct{}
+
 	importCache map[string]struct{}
 }
 
@@ -212,7 +216,8 @@ func (t *Tree) Resolve(name string) error {
 
 	// Reset the import cache each time to ensure a reused Tree doesn't
 	// reuse the same cache.
-	t.importCache = nil
+	t.importCache = map[string]struct{}{}
+	t.UnresolvedPkgs = map[string]struct{}{}
 
 	t.Root.Resolve()
 	if !t.Root.Resolved {
@@ -225,15 +230,15 @@ func (t *Tree) Resolve(name string) error {
 // hasSeenImport returns true if the import name provided has already been seen within the tree.
 // This function only returns false for a name once.
 func (t *Tree) hasSeenImport(name string) bool {
-	if t.importCache == nil {
-		t.importCache = make(map[string]struct{})
-	}
-
 	if _, ok := t.importCache[name]; ok {
 		return true
 	}
 	t.importCache[name] = struct{}{}
 	return false
+}
+
+func (t *Tree) rememverUnresolvedPkg(name string) {
+	t.UnresolvedPkgs[name] = struct{}{}
 }
 
 func prettyPrintJSON(j interface{}) {
@@ -250,4 +255,14 @@ func main() {
 	}
 
 	prettyPrintJSON(*t.Root)
+
+	if len(t.UnresolvedPkgs) != 0 {
+		fmt.Println("\nUnresolved packages:")
+
+		for unresolved := range t.UnresolvedPkgs {
+			fmt.Println(" - ", unresolved)
+		}
+
+		os.Exit(1)
+	}
 }
