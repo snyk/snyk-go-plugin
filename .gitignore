@@ -1,2 +1,5 @@
 /node_modules/
 .idea/
+/test/fixtures/gopath/pkg
+/test/fixtures/gopath/bin
+/test/fixtures/gopath/src/github.com/golang/dep
