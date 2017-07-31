@@ -91,6 +91,17 @@ test('missing some packages in vendor/ folder', function (t) {
     });
 });
 
+test('corrupt Gopkg.lock', function (t) {
+  chdirToPkg(['path', 'to', 'pkg-with-corrupt-gopkg-lock']);
+
+  return plugin.inspect('.', 'Gopkg.lock')
+    .then(function (result) {
+      t.fail('should have failed');
+    }).catch(function (error) {
+      t.pass();
+    });
+});
+
 function chdirToPkg(pkgPathArray) {
   process.env['GOPATH'] = path.resolve(__dirname, 'fixtures', 'gopath');
   process.chdir(
