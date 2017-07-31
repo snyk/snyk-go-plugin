@@ -2,9 +2,12 @@ var test = require('tap').test;
 var path = require('path');
 
 var plugin = require('../lib');
+var subProcess = require('../lib/sub-process')
 
 test('inspect', function (t) {
-  return plugin.inspect(path.join(__dirname, 'fixtures'), 'Gopkg.lock')
+  chdirToPkg(['path', 'to', 'pkg']);
+
+  return plugin.inspect('.', 'Gopkg.lock')
     .then(function (result) {
       var plugin = result.plugin;
       var pkg = result.package;
@@ -15,35 +18,35 @@ test('inspect', function (t) {
         t.end();
       });
 
+      t.test('root pkg', function (t) {
+        t.match(pkg, {
+          name: 'path/to/pkg',
+        }, 'root pkg')
+        t.end();
+      });
+
       t.test('dependencies', function (t) {
         var deps = pkg.dependencies;
 
-        t.same(deps['github.com/dgrijalva/jwt-go'], {
-          name: 'github.com/dgrijalva/jwt-go',
-          version: '3.0.0',
-        }, 'simple pkg');
-
-        t.same(deps['github.com/davecgh/go-spew/spew'], {
-          name: 'github.com/davecgh/go-spew/spew',
-          version: '1.1.0' ,
-        }, 'subpackage')
-
-        t.same(deps['github.com/valyala/bytebufferpool'], {
-          name: 'github.com/valyala/bytebufferpool',
-          version: '#e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7',
-        }, 'no version')
-
-        t.same(deps['golang.org/x/crypto/acme'], {
-          name: 'golang.org/x/crypto/acme',
-          version: '#e1a4589e7d3ea14a3352255d04b6f1a418845e5e',
-        }, 'golang.org multiple subpaackages 1')
-
-        t.same(deps['golang.org/x/crypto/acme/autocert'], {
-          name: 'golang.org/x/crypto/acme/autocert',
-          version: '#e1a4589e7d3ea14a3352255d04b6f1a418845e5e',
-        }, 'golang.org multiple subpaackages 2')
+        t.match(deps['gitpub.com/food/salad'], {
+          name: 'gitpub.com/food/salad',
+          version: '1.3.7',
+          dependencies: {
+            'gitpub.com/nature/vegetables/tomato': {
+              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+            },
+            'gitpub.com/nature/vegetables/cucamba': {
+              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+            },
+          },
+        });
 
         t.end();
       });
     });
 });
+
+function chdirToPkg(pkgPathArray) {
+  process.env['GOPATH'] = path.resolve(__dirname, 'fixtures', 'gopath');
+  process.chdir(path.resolve(__dirname, 'fixtures', 'gopath', 'src', ...pkgPathArray));
+}
