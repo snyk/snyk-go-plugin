@@ -69,8 +69,19 @@ test('inspect', function (t) {
     });
 });
 
-test('missing vendor folder', function (t) {
+test('missing vendor/ folder', function (t) {
   chdirToPkg(['path', 'to', 'pkg-with-missing-vendor-folder']);
+
+  return plugin.inspect('.', 'Gopkg.lock')
+    .then(function (result) {
+      t.fail('should have failed');
+    }).catch(function (error) {
+      t.equal(error.message, 'Please run `dep ensure`');
+    });
+});
+
+test('missing some packages in vendor/ folder', function (t) {
+  chdirToPkg(['path', 'to', 'pkg-with-partial-vendor-folder']);
 
   return plugin.inspect('.', 'Gopkg.lock')
     .then(function (result) {
