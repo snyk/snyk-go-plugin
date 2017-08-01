@@ -131,5 +131,10 @@ test('pkg without external deps', function (t) {
 function chdirToPkg(pkgPathArray) {
   process.env['GOPATH'] = path.resolve(__dirname, 'fixtures', 'gopath');
   process.chdir(
-    path.resolve(__dirname, 'fixtures', 'gopath', 'src', ...pkgPathArray));
+    // use apply() instead of the spread `...` operator to support node v4
+    path.resolve.apply(
+      null,
+      [__dirname, 'fixtures', 'gopath', 'src'].concat(pkgPathArray)
+    )
+  );
 }
