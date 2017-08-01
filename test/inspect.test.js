@@ -102,6 +102,33 @@ test('corrupt Gopkg.lock', function (t) {
     });
 });
 
+test('pkg without external deps', function (t) {
+  chdirToPkg(['path', 'to', 'pkg-without-deps']);
+
+  return plugin.inspect('.', 'Gopkg.lock')
+    .then(function (result) {
+      var plugin = result.plugin;
+      var pkg = result.package;
+
+      t.test('plugin', function (t) {
+        t.ok(plugin, 'plugin');
+        t.equal(plugin.name, 'snyk-go-plugin', 'name');
+        t.end();
+      });
+
+      t.test('pkg', function (t) {
+        t.same(pkg, {
+          name: 'path/to/pkg-without-deps',
+          version: '0.0.0',
+          from: ['path/to/pkg-without-deps@0.0.0'],
+          dependencies: {}
+        });
+        t.end();
+      });
+
+  })
+})
+
 function chdirToPkg(pkgPathArray) {
   process.env['GOPATH'] = path.resolve(__dirname, 'fixtures', 'gopath');
   process.chdir(
