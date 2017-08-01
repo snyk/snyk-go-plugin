@@ -1,0 +1,15 @@
+dist: trusty
+sudo: false
+notifications:
+  email: false
+language: node_js
+node_js:
+  - "8"
+  - "6"
+cache:
+  directories:
+    - node_modules
+script: npm test
+branches:
+  only:
+    - master
