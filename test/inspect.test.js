@@ -4,7 +4,7 @@ var path = require('path');
 var plugin = require('../lib');
 var subProcess = require('../lib/sub-process')
 
-test('inspect', function (t) {
+test('happy inspect', function (t) {
   chdirToPkg(['path', 'to', 'pkg']);
 
   return plugin.inspect('.', 'Gopkg.lock')
@@ -32,7 +32,7 @@ test('inspect', function (t) {
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
-          version: '1.3.7',
+          version: 'v1.3.7',
           dependencies: {
             'gitpub.com/nature/vegetables/tomato': {
               version: '#b6ffb7d62206806b573348160795ea16a00940a6',
@@ -41,23 +41,23 @@ test('inspect', function (t) {
               version: '#b6ffb7d62206806b573348160795ea16a00940a6',
             },
           },
-          from: ['path/to/pkg@0.0.0', 'gitpub.com/food/salad@1.3.7'],
+          from: ['path/to/pkg@0.0.0', 'gitpub.com/food/salad@v1.3.7'],
         }, 'salad depends on tomato and cucamba');
 
         t.match(deps['gitpub.com/meal/dinner'], {
-          version: '0.0.7',
+          version: 'v0.0.7',
           dependencies: {
             'gitpub.com/food/salad': {
-              version: '1.3.7',
+              version: 'v1.3.7',
               dependencies: {
                 'gitpub.com/nature/vegetables/tomato': {
                   version: '#b6ffb7d62206806b573348160795ea16a00940a6',
                   from: [
                     'path/to/pkg@0.0.0',
-                    'gitpub.com/meal/dinner@0.0.7',
-                    'gitpub.com/food/salad@1.3.7',
+                    'gitpub.com/meal/dinner@v0.0.7',
+                    'gitpub.com/food/salad@v1.3.7',
                     'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
-                    ],
+                  ],
                 },
               },
             },
@@ -121,12 +121,11 @@ test('pkg without external deps', function (t) {
           name: 'path/to/pkg-without-deps',
           version: '0.0.0',
           from: ['path/to/pkg-without-deps@0.0.0'],
-          dependencies: {}
+          dependencies: {},
         });
         t.end();
       });
-
-  })
+    })
 })
 
 function chdirToPkg(pkgPathArray) {
