@@ -23,6 +23,7 @@ test('happy inspect', function (t) {
           name: 'path/to/pkg',
           version: '0.0.0',
           from: ['path/to/pkg@0.0.0'],
+          packageFormatVersion: 'golang:0.0.1',
         }, 'root pkg')
         t.end();
       });
@@ -121,6 +122,7 @@ test('pkg without external deps', function (t) {
           name: 'path/to/pkg-without-deps',
           version: '0.0.0',
           from: ['path/to/pkg-without-deps@0.0.0'],
+          packageFormatVersion: 'golang:0.0.1',
           dependencies: {},
         });
         t.end();
