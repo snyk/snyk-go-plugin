@@ -1,4 +1,4 @@
-package main
+package salad
 
 import (
 	"fmt"
@@ -7,6 +7,6 @@ import (
 	_ "gitpub.com/nature/vegetables/tomato"
 )
 
-func main() {
+func init() {
 	fmt.Println("salad")
 }

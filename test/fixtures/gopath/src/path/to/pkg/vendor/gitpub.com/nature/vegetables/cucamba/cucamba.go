@@ -1,7 +1,7 @@
-package main
+package cucamba
 
 import "fmt"
 
-func main() {
+func init() {
 	fmt.Println("cucmba")
 }
