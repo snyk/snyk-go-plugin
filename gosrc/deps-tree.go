@@ -22,7 +22,7 @@ type Pkg struct {
 	SrcDir         string
 	Depth          int
 
-	Internal bool `json:"-"`
+	BuiltIn  bool `json:"-"`
 	Resolved bool
 
 	Tree   *Tree `json:"-"`
@@ -66,9 +66,9 @@ func (p *Pkg) Resolve() {
 	// Update the name with the fully qualified import path.
 	p.FullImportPath = pkg.ImportPath
 
-	// If this is an internal dependency, we don't resolve deeper
+	// If this is an builtin package, we don't resolve deeper
 	if pkg.Goroot {
-		p.Internal = true
+		p.BuiltIn = true
 		return
 	}
 
@@ -114,7 +114,7 @@ func (p *Pkg) addDep(name string, srcDir string) {
 	}
 	dep.Resolve()
 
-	if dep.Internal || dep.Name == "C" {
+	if dep.BuiltIn || dep.Name == "C" {
 		return
 	}
 
@@ -166,7 +166,7 @@ func (p *Pkg) cleanName() string {
 	return name
 }
 
-// sortablePkgsList ensures a slice of Pkgs are sorted such that the internal stdlib
+// sortablePkgsList ensures a slice of Pkgs are sorted such that the builtin stdlib
 // packages are always above external packages (ie. github.com/whatever).
 type sortablePkgsList []Pkg
 
@@ -179,9 +179,9 @@ func (b sortablePkgsList) Swap(i, j int) {
 }
 
 func (b sortablePkgsList) Less(i, j int) bool {
-	if b[i].Internal && !b[j].Internal {
+	if b[i].BuiltIn && !b[j].BuiltIn {
 		return true
-	} else if !b[i].Internal && b[j].Internal {
+	} else if !b[i].BuiltIn && b[j].BuiltIn {
 		return false
 	}
 
