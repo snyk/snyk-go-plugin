@@ -88,7 +88,7 @@ test('pkg with local import', function (t) {
         var deps = pkg.dependencies;
 
         t.match(deps['path/to/pkg-with-local-import/subpkg'], {
-          version: '',
+          version: '0.0.0',
           dependencies: {
             'gitpub.com/meal/dinner': {
               version: 'v0.0.7',
@@ -100,7 +100,7 @@ test('pkg with local import', function (t) {
                       version: '#b6ffb7d62206806b573348160795ea16a00940a6',
                       from: [
                         'path/to/pkg-with-local-import@0.0.0',
-                        'path/to/pkg-with-local-import/subpkg@',
+                        'path/to/pkg-with-local-import/subpkg@0.0.0',
                         'gitpub.com/meal/dinner@v0.0.7',
                         'gitpub.com/food/salad@v1.3.7',
                         'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
@@ -111,7 +111,7 @@ test('pkg with local import', function (t) {
               },
             },
           },
-        }, 'local subpkg is a dep with no version');
+        }, 'local subpkg has the same version of root');
 
         t.end();
       });

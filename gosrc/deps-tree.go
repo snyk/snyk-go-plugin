@@ -19,15 +19,17 @@ import (
 type Pkg struct {
 	Name           string
 	FullImportPath string
-	SrcDir         string
+	Dir            string
 	Depth          int
 
+	//TODO: these should better be rename to IsX
 	BuiltIn  bool `json:"-"`
 	Resolved bool
 
-	Tree   *Tree `json:"-"`
-	Parent *Pkg  `json:"-"`
-	Deps   []Pkg `json:",omitempty"`
+	Tree      *Tree  `json:"-"`
+	Parent    *Pkg   `json:"-"`
+	ParentDir string `json:"-"`
+	Deps      []Pkg  `json:",omitempty"`
 
 	Raw *build.Package `json:"-"`
 }
@@ -50,7 +52,7 @@ func (p *Pkg) Resolve() {
 		importMode = build.FindOnly
 	}
 
-	pkg, err := build.Default.Import(name, p.SrcDir, importMode)
+	pkg, err := build.Default.Import(name, p.ParentDir, importMode)
 	if err != nil {
 		// TODO: Check the error type?
 		p.Resolved = false
@@ -58,6 +60,7 @@ func (p *Pkg) Resolve() {
 		return
 	}
 	p.Raw = pkg
+	p.Dir = pkg.Dir
 
 	// Clear some too verbose fields
 	p.Raw.ImportPos = nil
@@ -83,7 +86,7 @@ func (p *Pkg) Resolve() {
 // setDeps takes a slice of import paths and the source directory they are relative to,
 // and creates the Deps of the Pkg. Each dependency is also further resolved prior to being added
 // to the Pkg.
-func (p *Pkg) setDeps(imports []string, srcDir string) {
+func (p *Pkg) setDeps(imports []string, parentDir string) {
 	unique := make(map[string]struct{})
 
 	for _, imp := range imports {
@@ -98,19 +101,20 @@ func (p *Pkg) setDeps(imports []string, srcDir string) {
 		}
 		unique[imp] = struct{}{}
 
-		p.addDep(imp, srcDir)
+		p.addDep(imp, parentDir)
 	}
 
 	sort.Sort(sortablePkgsList(p.Deps))
 }
 
 // addDep creates a Pkg and it's dependencies from an imported package name.
-func (p *Pkg) addDep(name string, srcDir string) {
+func (p *Pkg) addDep(name string, parentDir string) {
 	dep := Pkg{
-		Name:   name,
-		SrcDir: srcDir,
-		Tree:   p.Tree,
-		Parent: p,
+		Name: name,
+		Tree: p.Tree,
+		//TODO: maybe better pass ParentDir as a param to Resolve() instead
+		ParentDir: parentDir,
+		Parent:    p,
 	}
 	dep.Resolve()
 
@@ -209,9 +213,9 @@ func (t *Tree) Resolve(name string) error {
 	}
 
 	t.Root = &Pkg{
-		Name:   name,
-		Tree:   t,
-		SrcDir: pwd,
+		Name:      name,
+		Tree:      t,
+		ParentDir: pwd,
 	}
 
 	// Reset the import cache each time to ensure a reused Tree doesn't
