@@ -22,9 +22,8 @@ type Pkg struct {
 	Dir            string
 	Depth          int
 
-	//TODO: these should better be rename to IsX
-	BuiltIn  bool `json:"-"`
-	Resolved bool
+	IsBuiltin  bool `json:"-"`
+	IsResolved bool
 
 	Tree      *Tree  `json:"-"`
 	Parent    *Pkg   `json:"-"`
@@ -36,9 +35,9 @@ type Pkg struct {
 
 // Resolve recursively finds all dependencies for the Pkg and the packages it depends on.
 func (p *Pkg) Resolve() {
-	// Resolved is always true, regardless of if we skip the import,
+	// IsResolved is always true, regardless of if we skip the import,
 	// it is only false if there is an error while importing.
-	p.Resolved = true
+	p.IsResolved = true
 
 	name := p.cleanName()
 	if name == "" {
@@ -55,7 +54,7 @@ func (p *Pkg) Resolve() {
 	pkg, err := build.Default.Import(name, p.ParentDir, importMode)
 	if err != nil {
 		// TODO: Check the error type?
-		p.Resolved = false
+		p.IsResolved = false
 		p.Tree.rememverUnresolvedPkg(name)
 		return
 	}
@@ -71,7 +70,7 @@ func (p *Pkg) Resolve() {
 
 	// If this is an builtin package, we don't resolve deeper
 	if pkg.Goroot {
-		p.BuiltIn = true
+		p.IsBuiltin = true
 		return
 	}
 
@@ -118,7 +117,7 @@ func (p *Pkg) addDep(name string, parentDir string) {
 	}
 	dep.Resolve()
 
-	if dep.BuiltIn || dep.Name == "C" {
+	if dep.IsBuiltin || dep.Name == "C" {
 		return
 	}
 
@@ -183,9 +182,9 @@ func (b sortablePkgsList) Swap(i, j int) {
 }
 
 func (b sortablePkgsList) Less(i, j int) bool {
-	if b[i].BuiltIn && !b[j].BuiltIn {
+	if b[i].IsBuiltin && !b[j].IsBuiltin {
 		return true
-	} else if !b[i].BuiltIn && b[j].BuiltIn {
+	} else if !b[i].IsBuiltin && b[j].IsBuiltin {
 		return false
 	}
 
@@ -224,7 +223,7 @@ func (t *Tree) Resolve(name string) error {
 	t.UnresolvedPkgs = map[string]struct{}{}
 
 	t.Root.Resolve()
-	if !t.Root.Resolved {
+	if !t.Root.IsResolved {
 		return errors.New("unable to resolve root package")
 	}
 
