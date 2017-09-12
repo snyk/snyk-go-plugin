@@ -15,6 +15,7 @@ test('happy inspect', function (t) {
       t.test('plugin', function (t) {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
+        t.match(plugin.runtime, /^go\d+/, 'engine');
         t.end();
       });
 
@@ -81,6 +82,7 @@ test('pkg with local import', function (t) {
       t.test('plugin', function (t) {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
+        t.match(plugin.runtime, /^go\d+/, 'engine');
         t.end();
       });
 
@@ -163,6 +165,7 @@ test('pkg without external deps', function (t) {
       t.test('plugin', function (t) {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
+        t.match(plugin.runtime, /^go\d+/, 'engine');
         t.end();
       });
 
