@@ -6,4 +6,4 @@ Snyk helps you find, fix and monitor for known vulnerabilities in your dependenc
 
 ## Snyk Golang CLI Plugin
 
-This plugin provides dependency metadata for Golang projects that use `dep` and have a `Gopkg.lock` file.
+This plugin provides dependency metadata for Golang projects that use `dep` (and have a `Gopkg.lock` file), or `govendor` (and have a `vendor/vendor.json` file).

@@ -1,0 +1,9 @@
+{
+	"comment": "v1.2",
+	"ignore": "",
+	"rootPath": "we-ignore-this",
+	"package": [
+		{
+			"checksumSHA1": "dummy",
+			"path": "gitpub.com/food/salad",
+			"revision": "8b100cedd15d96a9ba0f4e48fd852d21b93b0f33"
