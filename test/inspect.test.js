@@ -25,7 +25,9 @@ test('happy inspect', function (t) {
           version: '0.0.0',
           from: ['path/to/pkg@0.0.0'],
           packageFormatVersion: 'golang:0.0.1',
+          targetFilePath: path.posix.resolve('Gopkg.lock'),
         }, 'root pkg')
+        t.match(pkg.targetFilePath, /pkg\/Gopkg\.lock$/, 'targetFilePath');
         t.end();
       });
 
@@ -220,6 +222,7 @@ test('pkg without external deps', function (t) {
           name: 'path/to/pkg-without-deps',
           version: '0.0.0',
           from: ['path/to/pkg-without-deps@0.0.0'],
+          targetFilePath: path.posix.resolve('Gopkg.lock'),
           packageFormatVersion: 'golang:0.0.1',
           dependencies: {},
         });
@@ -250,6 +253,7 @@ test('happy inspect govendor', function (t) {
           from: ['path/to/pkg@0.0.0'],
           packageFormatVersion: 'golang:0.0.1',
         }, 'root pkg')
+        t.match(pkg.targetFilePath, /vendor\/vendor\.json$/, 'targetFilePath');
         t.end();
       });
 
