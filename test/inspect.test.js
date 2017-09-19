@@ -262,7 +262,7 @@ test('happy inspect govendor', function (t) {
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
-          version: '#8b100cedd15d96a9ba0f4e48fd852d21b93b0f33',
+          version: 'v1.3.7',
           dependencies: {
             'gitpub.com/nature/vegetables/tomato': {
               version: '#b6ffb7d62206806b573348160795ea16a00940a6',
@@ -271,31 +271,28 @@ test('happy inspect govendor', function (t) {
               version: '#b6ffb7d62206806b573348160795ea16a00940a6',
             },
           },
-          from: [
-            'path/to/pkg@0.0.0',
-            'gitpub.com/food/salad@#8b100cedd15d96a9ba0f4e48fd852d21b93b0f33',
-          ],
+          from: ['path/to/pkg@0.0.0', 'gitpub.com/food/salad@v1.3.7'],
         }, 'salad depends on tomato and cucamba');
 
         t.match(deps['gitpub.com/meal/dinner'], {
-          version: '#2ebf14b5ac2969032b6c7f6f3e9ff1b2a8db0075',
+          version: 'v0.0.7',
           dependencies: {
             'gitpub.com/food/salad': {
-              version: '#8b100cedd15d96a9ba0f4e48fd852d21b93b0f33',
+              version: 'v1.3.7',
               dependencies: {
                 'gitpub.com/nature/vegetables/tomato': {
                   version: '#b6ffb7d62206806b573348160795ea16a00940a6',
                   from: [
                     'path/to/pkg@0.0.0',
-                    'gitpub.com/meal/dinner@#2ebf14b5ac2969032b6c7f6f3e9ff1b2a8db0075', // jscs:ignore maximumLineLength
-                    'gitpub.com/food/salad@#8b100cedd15d96a9ba0f4e48fd852d21b93b0f33', // jscs:ignore maximumLineLength
+                    'gitpub.com/meal/dinner@v0.0.7',
+                    'gitpub.com/food/salad@v1.3.7',
                     'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
                   ],
                 },
               },
             },
           },
-        }, 'salad is also a trasitive dependency')
+        }, 'salad is also a trasitive dependency');
 
         t.end();
       });

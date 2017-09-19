@@ -6,7 +6,8 @@
 		{
 			"checksumSHA1": "dummy",
 			"path": "gitpub.com/food/salad",
-			"revision": "8b100cedd15d96a9ba0f4e48fd852d21b93b0f33"
+			"revision": "8b100cedd15d96a9ba0f4e48fd852d21b93b0f33",
+			"versionExact": "v1.3.7"
 		},
 		{
 			"checksumSHA1": "dummy",
@@ -21,7 +22,8 @@
 		{
 			"checksumSHA1": "dummy",
 			"path": "gitpub.com/meal/dinner",
-			"revision": "2ebf14b5ac2969032b6c7f6f3e9ff1b2a8db0075"
+			"revision": "2ebf14b5ac2969032b6c7f6f3e9ff1b2a8db0075",
+			"versionExact": "v0.0.7"
 		}
 	]
 }
