@@ -43,7 +43,6 @@ func (p *Pkg) Resolve() {
 	if name == "" {
 		return
 	}
-	p.Depth = p.depth()
 
 	// Stop resolving imports if we've reached a loop.
 	var importMode build.ImportMode
@@ -108,14 +107,26 @@ func (p *Pkg) setDeps(imports []string, parentDir string) {
 
 // addDep creates a Pkg and it's dependencies from an imported package name.
 func (p *Pkg) addDep(name string, parentDir string) {
-	dep := Pkg{
-		Name: name,
-		Tree: p.Tree,
-		//TODO: maybe better pass ParentDir as a param to Resolve() instead
-		ParentDir: parentDir,
-		Parent:    p,
+	var dep Pkg
+	cached := p.Tree.getCachedPkg(name)
+	if cached  != nil {
+		dep = *cached
+		dep.ParentDir = parentDir
+		dep.Parent = p
+	} else {
+		dep = Pkg{
+			Name: name,
+			Tree: p.Tree,
+			//TODO: maybe better pass ParentDir as a param to Resolve() instead
+			ParentDir: parentDir,
+			Parent:    p,
+		}
+		dep.Resolve()
+
+		p.Tree.cacheResolvedPackage(&dep)
 	}
-	dep.Resolve()
+
+	p.Depth = p.depth()
 
 	if dep.IsBuiltin || dep.Name == "C" {
 		return
@@ -200,6 +211,8 @@ type Tree struct {
 
 	UnresolvedPkgs map[string]struct{}
 
+	PkgCache map[string]*Pkg
+
 	importCache map[string]struct{}
 }
 
@@ -221,6 +234,7 @@ func (t *Tree) Resolve(name string) error {
 	// reuse the same cache.
 	t.importCache = map[string]struct{}{}
 	t.UnresolvedPkgs = map[string]struct{}{}
+	t.PkgCache = map[string]*Pkg{}
 
 	t.Root.Resolve()
 	if !t.Root.IsResolved {
@@ -242,6 +256,18 @@ func (t *Tree) hasSeenImport(name string) bool {
 
 func (t *Tree) rememverUnresolvedPkg(name string) {
 	t.UnresolvedPkgs[name] = struct{}{}
+}
+
+func (t *Tree) cacheResolvedPackage(pkg *Pkg) {
+	t.PkgCache[pkg.Name] = pkg
+}
+
+func (t *Tree) getCachedPkg(name string) *Pkg {
+	pkg, ok := t.PkgCache[name]
+	if !ok {
+		return nil
+	}
+	return pkg
 }
 
 func prettyPrintJSON(j interface{}) {
