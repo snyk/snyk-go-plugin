@@ -16,6 +16,7 @@ test('happy inspect', function (t) {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
+        t.equal(plugin.targetFile, 'Gopkg.lock');
         t.end();
       });
 
@@ -25,9 +26,7 @@ test('happy inspect', function (t) {
           version: '0.0.0',
           from: ['path/to/pkg@0.0.0'],
           packageFormatVersion: 'golang:0.0.1',
-          targetFilePath: path.posix.resolve('Gopkg.lock'),
         }, 'root pkg')
-        t.match(pkg.targetFilePath, /pkg\/Gopkg\.lock$/, 'targetFilePath');
         t.end();
       });
 
@@ -214,6 +213,7 @@ test('pkg without external deps', function (t) {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
+        t.equal(plugin.targetFile, 'Gopkg.lock');
         t.end();
       });
 
@@ -222,7 +222,6 @@ test('pkg without external deps', function (t) {
           name: 'path/to/pkg-without-deps',
           version: '0.0.0',
           from: ['path/to/pkg-without-deps@0.0.0'],
-          targetFilePath: path.posix.resolve('Gopkg.lock'),
           packageFormatVersion: 'golang:0.0.1',
           dependencies: {},
         });
@@ -243,6 +242,7 @@ test('happy inspect govendor', function (t) {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
+        t.equal(plugin.targetFile, 'vendor/vendor.json');
         t.end();
       });
 
@@ -252,8 +252,7 @@ test('happy inspect govendor', function (t) {
           version: '0.0.0',
           from: ['path/to/pkg@0.0.0'],
           packageFormatVersion: 'golang:0.0.1',
-        }, 'root pkg')
-        t.match(pkg.targetFilePath, /vendor\/vendor\.json$/, 'targetFilePath');
+        }, 'root pkg');
         t.end();
       });
 
