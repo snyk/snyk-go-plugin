@@ -7,7 +7,7 @@ function main() {
   plugin.inspect('.', targetFile).then(function (result) {
     console.log('\ninspect results:\n\n', JSON.stringify(result, null, 2));
   }).catch(function (error) {
-    console.log('Error:', error);
+    console.log('Error:', error.stack);
   });
 
 };
