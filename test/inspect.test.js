@@ -120,6 +120,52 @@ test('pkg with local import', function (t) {
     });
 });
 
+test('pkg with internal subpkg', function (t) {
+  chdirToPkg(['path', 'to', 'pkg-with-internal-subpkg']);
+
+  return plugin.inspect('.', 'Gopkg.lock')
+    .then(function (result) {
+      var plugin = result.plugin;
+      var pkg = result.package;
+
+      t.test('plugin', function (t) {
+        t.ok(plugin, 'plugin');
+        t.equal(plugin.name, 'snyk-go-plugin', 'name');
+        t.match(plugin.runtime, /^go\d+/, 'engine');
+        t.end();
+      });
+
+      t.test('dependencies', function (t) {
+        t.match(pkg, {
+          version: '0.0.0',
+          dependencies: {
+            'gitpub.com/meal/dinner': {
+              version: 'v0.0.7',
+              dependencies: {
+                'gitpub.com/food/salad': {
+                  version: 'v1.3.7',
+                  dependencies: {
+                    'gitpub.com/nature/vegetables/tomato': {
+                      version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+                      from: [
+                        'path/to/pkg-with-internal-subpkg@0.0.0',
+                        'gitpub.com/meal/dinner@v0.0.7',
+                        'gitpub.com/food/salad@v1.3.7',
+                        'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }, 'internal subpkgps are not in tree, but their children are');
+
+        t.end();
+      });
+    });
+});
+
 
 test('missing vendor/ folder', function (t) {
   chdirToPkg(['path', 'to', 'pkg-with-missing-vendor-folder']);
