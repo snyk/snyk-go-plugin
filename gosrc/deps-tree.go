@@ -20,15 +20,15 @@ type Pkg struct {
 	Name           string
 	FullImportPath string
 	Dir            string
-	Depth          int
+	Depth          int `json:"-"`
 
 	IsBuiltin  bool `json:"-"`
-	IsResolved bool
+	IsResolved bool `json:"-"`
 
 	Tree      *Tree  `json:"-"`
 	Parent    *Pkg   `json:"-"`
 	ParentDir string `json:"-"`
-	Deps      []Pkg  `json:",omitempty"`
+	Deps      []Pkg  `json:"-"`
 
 	Raw *build.Package `json:"-"`
 }
@@ -109,7 +109,7 @@ func (p *Pkg) setDeps(imports []string, parentDir string) {
 func (p *Pkg) addDep(name string, parentDir string) {
 	var dep Pkg
 	cached := p.Tree.getCachedPkg(name)
-	if cached  != nil {
+	if cached != nil {
 		dep = *cached
 		dep.ParentDir = parentDir
 		dep.Parent = p
@@ -270,6 +270,60 @@ func (t *Tree) getCachedPkg(name string) *Pkg {
 	return pkg
 }
 
+//TODO: help consumer of this JSON find cycles ...
+func (t *Tree) toGraphlibJSON() map[string]interface{} {
+	options := map[string]interface{}{
+		"directed":   true,
+		"multigraph": false,
+		"compound":   false,
+	}
+
+	nodesMap := map[string]interface{}{}
+	edgesMap := map[string]interface{}{}
+
+	var recurse func(pkg *Pkg)
+	recurse = func(pkg *Pkg) {
+		_, exists := nodesMap[pkg.Name]
+		if exists {
+			return
+		}
+
+		node := map[string]interface{}{
+			"v":     pkg.Name,
+			"value": *pkg,
+		}
+		nodesMap[pkg.Name] = node
+
+		for _, child := range pkg.Deps {
+			edge := map[string]interface{}{
+				"v": pkg.Name,
+				"w": child.Name,
+			}
+			edgesMap[pkg.Name+":"+child.Name] = edge
+
+			recurse(&child)
+		}
+	}
+
+	recurse(t.Root)
+
+	var nodes []interface{}
+	for _, v := range nodesMap {
+		nodes = append(nodes, v)
+	}
+
+	var edges []interface{}
+	for _, v := range edgesMap {
+		edges = append(edges, v)
+	}
+
+	return map[string]interface{}{
+		"options": options,
+		"nodes":   nodes,
+		"edges":   edges,
+	}
+}
+
 func prettyPrintJSON(j interface{}) {
 	e := json.NewEncoder(os.Stdout)
 	e.SetIndent("", "  ")
@@ -278,12 +332,13 @@ func prettyPrintJSON(j interface{}) {
 
 func main() {
 	var t Tree
+
 	err := t.Resolve(".")
 	if err != nil {
 		panic(err)
 	}
 
-	prettyPrintJSON(*t.Root)
+	prettyPrintJSON(t.toGraphlibJSON())
 
 	if len(t.UnresolvedPkgs) != 0 {
 		fmt.Println("\nUnresolved packages:")
