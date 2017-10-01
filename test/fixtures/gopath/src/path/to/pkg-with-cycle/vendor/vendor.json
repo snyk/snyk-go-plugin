@@ -1,0 +1,29 @@
+{
+	"comment": "v1.2",
+	"ignore": "",
+	"rootPath": "we-ignore-this",
+	"package": [
+		{
+			"checksumSHA1": "dummy",
+			"path": "gitpub.com/food/salad",
+			"revision": "8b100cedd15d96a9ba0f4e48fd852d21b93b0f33",
+			"versionExact": "v1.3.7"
+		},
+		{
+			"checksumSHA1": "dummy",
+			"path": "gitpub.com/nature/vegetables/tomato",
+			"revision": "b6ffb7d62206806b573348160795ea16a00940a6"
+		},
+		{
+			"checksumSHA1": "dummy",
+			"path": "gitpub.com/nature/vegetables/cucamba",
+			"revision": "b6ffb7d62206806b573348160795ea16a00940a6"
+		},
+		{
+			"checksumSHA1": "dummy",
+			"path": "gitpub.com/meal/dinner",
+			"revision": "2ebf14b5ac2969032b6c7f6f3e9ff1b2a8db0075",
+			"versionExact": "v0.0.7"
+		}
+	]
+}
