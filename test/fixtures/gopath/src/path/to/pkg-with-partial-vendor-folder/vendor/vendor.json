@@ -1,0 +1,6 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [],
+	"rootPath": "path/to/pkg-with-partial-vendor-folder"
+}

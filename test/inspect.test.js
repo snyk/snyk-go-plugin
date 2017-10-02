@@ -172,22 +172,39 @@ test('missing vendor/ folder', function (t) {
     .then(function (result) {
       t.fail('should have failed');
     }).catch(function (error) {
-      t.equal(error.message, 'Please run `dep ensure`');
+      t.equal(
+        error.message,
+        'Unresolved imports found, please run `dep ensure`');
     });
 });
 
-test('missing some packages in vendor/ folder', function (t) {
+test('missing some packages in vendor/ folder (dep)', function (t) {
   chdirToPkg(['path', 'to', 'pkg-with-partial-vendor-folder']);
 
   return plugin.inspect('.', 'Gopkg.lock')
     .then(function (result) {
       t.fail('should have failed');
     }).catch(function (error) {
-      t.equal(error.message, 'Please run `dep ensure`');
+      t.equal(
+        error.message,
+        'Unresolved imports found, please run `dep ensure`');
     });
 });
 
-test('cyclic import', function(t) {
+test('missing some packages in vendor/ folder (govendor)', function (t) {
+  chdirToPkg(['path', 'to', 'pkg-with-partial-vendor-folder']);
+
+  return plugin.inspect('.', 'vendor/vendor.json')
+    .then(function (result) {
+      t.fail('should have failed');
+    }).catch(function (error) {
+      t.equal(
+        error.message,
+        'Unresolved imports found, please run `govendor fetch +outside`');
+    });
+});
+
+test('cyclic import', function (t) {
   chdirToPkg(['path', 'to', 'pkg-with-cycle']);
 
   return plugin.inspect('.', 'vendor/vendor.json')
