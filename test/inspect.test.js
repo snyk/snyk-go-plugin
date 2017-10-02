@@ -187,6 +187,18 @@ test('missing some packages in vendor/ folder', function (t) {
     });
 });
 
+test('cyclic import', function(t) {
+  chdirToPkg(['path', 'to', 'pkg-with-cycle']);
+
+  return plugin.inspect('.', 'vendor/vendor.json')
+    .then(function (result) {
+      t.fail('should have failed');
+    }).catch(function (error) {
+      t.match(error.message, 'import cycle');
+      t.pass();
+    });
+});
+
 test('corrupt Gopkg.lock', function (t) {
   chdirToPkg(['path', 'to', 'pkg-with-corrupt-gopkg-lock']);
 
@@ -370,7 +382,6 @@ test('inspect govendor with alternate case', function (t) {
     });
 });
 
-
 test('corrupt vendor.json', function (t) {
   chdirToPkg(['path', 'to', 'pkg-with-corrupt-govendor-json']);
 
@@ -381,7 +392,6 @@ test('corrupt vendor.json', function (t) {
       t.pass();
     });
 });
-
 
 function chdirToPkg(pkgPathArray) {
   process.env['GOPATH'] = path.resolve(__dirname, 'fixtures', 'gopath');
