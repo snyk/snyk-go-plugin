@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"go/build"
 	"os"
@@ -270,16 +271,35 @@ func (t *Tree) getCachedPkg(name string) *Pkg {
 	return pkg
 }
 
-//TODO: help consumer of this JSON find cycles ...
-func (t *Tree) toGraphlibJSON() map[string]interface{} {
-	options := map[string]interface{}{
-		"directed":   true,
-		"multigraph": false,
-		"compound":   false,
-	}
+// Node is Grpah's node
+type Node struct {
+	Name  string      `json:"v"`
+	Value interface{} `json:"value"`
+}
 
-	nodesMap := map[string]interface{}{}
-	edgesMap := map[string]interface{}{}
+// Edge is Graph's edge
+type Edge struct {
+	From string `json:"v"`
+	To   string `json:"w"`
+}
+
+// GraphOptions is Graph's options
+type GraphOptions struct {
+	Directed   bool `json:"directed"`
+	Multigraph bool `json:"multigraph"`
+	Compound   bool `json:"compound"`
+}
+
+// Graph is graph that when marshaled to JSON can be imported via Graphlib JS pkg from NPM
+type Graph struct {
+	Nodes   []Node       `json:"nodes"`
+	Edges   []Edge       `json:"edges"`
+	Options GraphOptions `json:"options"`
+}
+
+func (t *Tree) toGraph() Graph {
+	nodesMap := map[string]Node{}
+	edgesMap := map[string]Edge{}
 
 	var recurse func(pkg *Pkg)
 	recurse = func(pkg *Pkg) {
@@ -288,16 +308,16 @@ func (t *Tree) toGraphlibJSON() map[string]interface{} {
 			return
 		}
 
-		node := map[string]interface{}{
-			"v":     pkg.Name,
-			"value": *pkg,
+		node := Node{
+			Name:  pkg.Name,
+			Value: *pkg,
 		}
 		nodesMap[pkg.Name] = node
 
 		for _, child := range pkg.Deps {
-			edge := map[string]interface{}{
-				"v": pkg.Name,
-				"w": child.Name,
+			edge := Edge{
+				From: pkg.Name,
+				To:   child.Name,
 			}
 			edgesMap[pkg.Name+":"+child.Name] = edge
 
@@ -307,21 +327,45 @@ func (t *Tree) toGraphlibJSON() map[string]interface{} {
 
 	recurse(t.Root)
 
-	var nodes []interface{}
+	var nodes []Node
 	for _, v := range nodesMap {
 		nodes = append(nodes, v)
 	}
 
-	var edges []interface{}
+	var edges []Edge
 	for _, v := range edgesMap {
 		edges = append(edges, v)
 	}
 
-	return map[string]interface{}{
-		"options": options,
-		"nodes":   nodes,
-		"edges":   edges,
+	return Graph{
+		Nodes: nodes,
+		Edges: edges,
+		Options: GraphOptions{
+			Directed: true,
+		},
 	}
+}
+
+func (g Graph) toDOT() string {
+	dot := "digraph {\n"
+
+	id := 0
+	nodeIDs := map[string]int{}
+
+	for _, n := range g.Nodes {
+		nodeIDs[n.Name] = id
+		dot += fmt.Sprintf("\t%d [label=\"%s\"]\n", id, n.Name)
+		id++
+	}
+
+	dot += "\n"
+
+	for _, e := range g.Edges {
+		dot += fmt.Sprintf("\t%d -> %d;\n", nodeIDs[e.From], nodeIDs[e.To])
+	}
+	dot += "}\n"
+
+	return dot
 }
 
 func prettyPrintJSON(j interface{}) {
@@ -331,6 +375,16 @@ func prettyPrintJSON(j interface{}) {
 }
 
 func main() {
+	flag.Usage = func() {
+		fmt.Println(`  Scans the imports tree from the Go package in current-dir,
+  and prints the dependency graph in a JSON format that can be imported via npmjs.com/graphlib
+		`)
+		flag.PrintDefaults()
+		fmt.Println("")
+	}
+	var outputDOT = flag.Bool("dot", false, "Output as Graphviz DOT format")
+	flag.Parse()
+
 	var t Tree
 
 	err := t.Resolve(".")
@@ -338,7 +392,13 @@ func main() {
 		panic(err)
 	}
 
-	prettyPrintJSON(t.toGraphlibJSON())
+	graph := t.toGraph()
+
+	if *outputDOT {
+		fmt.Println(graph.toDOT())
+	} else {
+		prettyPrintJSON(graph)
+	}
 
 	if len(t.UnresolvedPkgs) != 0 {
 		fmt.Println("\nUnresolved packages:")
