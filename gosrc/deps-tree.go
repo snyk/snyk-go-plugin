@@ -133,7 +133,11 @@ func (p *Pkg) addDep(name string, parentDir string) {
 		return
 	}
 
-	p.Deps = append(p.Deps, dep)
+	if isInternalImport(dep.Name) {
+		p.Deps = append(p.Deps, dep.Deps...)
+	} else {
+		p.Deps = append(p.Deps, dep)
+	}
 }
 
 // depth returns the depth of the Pkg within the Tree.
@@ -179,6 +183,10 @@ func (p *Pkg) cleanName() string {
 	}
 
 	return name
+}
+
+func isInternalImport(importPath string) bool {
+	return strings.Contains(importPath, "/internal/")
 }
 
 // sortablePkgsList ensures a slice of Pkgs are sorted such that the builtin stdlib
