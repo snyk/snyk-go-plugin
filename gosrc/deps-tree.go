@@ -376,6 +376,17 @@ func (g Graph) toDOT() string {
 	return dot
 }
 
+func (g Graph) sortedNodeNames() []string {
+	names := []string{}
+
+	for _, n := range g.Nodes {
+		names = append(names, n.Name)
+	}
+
+	sort.Strings(names)
+	return names
+}
+
 func prettyPrintJSON(j interface{}) {
 	e := json.NewEncoder(os.Stdout)
 	e.SetIndent("", "  ")
@@ -391,6 +402,7 @@ func main() {
 		fmt.Println("")
 	}
 	var outputDOT = flag.Bool("dot", false, "Output as Graphviz DOT format")
+	var outputList = flag.Bool("list", false, "Output a flat JSON array of all reachable deps")
 	flag.Parse()
 
 	var t Tree
@@ -404,6 +416,8 @@ func main() {
 
 	if *outputDOT {
 		fmt.Println(graph.toDOT())
+	} else if *outputList {
+		prettyPrintJSON(graph.sortedNodeNames())
 	} else {
 		prettyPrintJSON(graph)
 	}
