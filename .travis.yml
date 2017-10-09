@@ -11,6 +11,9 @@ node_js:
 cache:
   directories:
     - node_modules
+install:
+  - 'eval "$(gimme 1.8.4)"'
+  - 'go version'
 script: npm test
 jobs:
   include:
