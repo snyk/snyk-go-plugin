@@ -14,7 +14,9 @@ cache:
 install:
   - 'eval "$(gimme 1.8.4)"'
   - 'go version'
-script: npm test
+script:
+  - "npm install"
+  - "npm test"
 jobs:
   include:
     - stage: npm release
