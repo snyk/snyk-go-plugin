@@ -204,6 +204,19 @@ test('missing some packages in vendor/ folder (govendor)', function (t) {
     });
 });
 
+test('missing some packages in vendor/ folder (godep)', function (t) {
+  chdirToPkg(['path', 'to', 'pkg-with-partial-vendor-folder']);
+
+  return plugin.inspect('.', 'Godeps/Godeps.json')
+    .then(function (result) {
+      t.fail('should have failed');
+    }).catch(function (error) {
+      t.equal(
+        error.message,
+        'Unresolved imports found, please run `godep save`');
+    });
+});
+
 test('cyclic import', function (t) {
   chdirToPkg(['path', 'to', 'pkg-with-cycle']);
 
@@ -403,6 +416,88 @@ test('corrupt vendor.json', function (t) {
   chdirToPkg(['path', 'to', 'pkg-with-corrupt-govendor-json']);
 
   return plugin.inspect('.', 'vendor/vendor.json')
+    .then(function (result) {
+      t.fail('should have failed');
+    }).catch(function (error) {
+      t.pass();
+    });
+});
+
+test('happy inspect godep', function (t) {
+  chdirToPkg(['path', 'to', 'pkg']);
+
+  return plugin.inspect('.', 'Godeps/Godeps.json')
+    .then(function (result) {
+      var plugin = result.plugin;
+      var pkg = result.package;
+
+      t.test('plugin', function (t) {
+        t.ok(plugin, 'plugin');
+        t.equal(plugin.name, 'snyk-go-plugin', 'name');
+        t.match(plugin.runtime, /^go\d+/, 'engine');
+        t.equal(plugin.targetFile, 'Godeps/Godeps.json');
+        t.end();
+      });
+
+      t.test('root pkg', function (t) {
+        t.match(pkg, {
+          name: 'path/to/pkg',
+          version: '0.0.0',
+          from: ['path/to/pkg@0.0.0'],
+          packageFormatVersion: 'golang:0.0.1',
+        }, 'root pkg');
+        t.end();
+      });
+
+      t.test('dependencies', function (t) {
+        var deps = pkg.dependencies;
+
+        t.match(deps['gitpub.com/food/salad'], {
+          name: 'gitpub.com/food/salad',
+          version: '#8b100cedd15d96a9ba0f4e48fd852d21b93b0f33',
+          dependencies: {
+            'gitpub.com/nature/vegetables/tomato': {
+              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+            },
+            'gitpub.com/nature/vegetables/cucamba': {
+              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+            },
+          },
+          from: [
+            'path/to/pkg@0.0.0',
+            'gitpub.com/food/salad@#8b100cedd15d96a9ba0f4e48fd852d21b93b0f33',
+          ],
+        }, 'salad depends on tomato and cucamba');
+
+        t.match(deps['gitpub.com/meal/dinner'], {
+          version: '#2ebf14b5ac2969032b6c7f6f3e9ff1b2a8db0075',
+          dependencies: {
+            'gitpub.com/food/salad': {
+              version: '#8b100cedd15d96a9ba0f4e48fd852d21b93b0f33',
+              dependencies: {
+                'gitpub.com/nature/vegetables/tomato': {
+                  version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+                  from: [
+                    'path/to/pkg@0.0.0',
+                    'gitpub.com/meal/dinner@#2ebf14b5ac2969032b6c7f6f3e9ff1b2a8db0075', // jscs:ignore maximumLineLength
+                    'gitpub.com/food/salad@#8b100cedd15d96a9ba0f4e48fd852d21b93b0f33', // jscs:ignore maximumLineLength
+                    'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
+                  ],
+                },
+              },
+            },
+          },
+        }, 'salad is also a trasitive dependency');
+
+        t.end();
+      });
+    });
+});
+
+test('corrupt Godeps.json', function (t) {
+  chdirToPkg(['path', 'to', 'pkg-with-corrupt-godeps-json']);
+
+  return plugin.inspect('.', 'Godeps/Godeps.json')
     .then(function (result) {
       t.fail('should have failed');
     }).catch(function (error) {
