@@ -23,16 +23,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+
 package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"go/build"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 )
@@ -47,10 +48,10 @@ type Pkg struct {
 	IsBuiltin  bool `json:"-"`
 	IsResolved bool `json:"-"`
 
-	Tree      *Tree  `json:"-"`
-	Parent    *Pkg   `json:"-"`
-	ParentDir string `json:"-"`
-	Deps      []Pkg  `json:"-"`
+	ResolveContext *ResolveContext `json:"-"`
+	Parent         *Pkg            `json:"-"`
+	ParentDir      string          `json:"-"`
+	Deps           []Pkg           `json:"-"`
 
 	Raw *build.Package `json:"-"`
 }
@@ -68,7 +69,7 @@ func (p *Pkg) Resolve() {
 
 	// Stop resolving imports if we've reached a loop.
 	var importMode build.ImportMode
-	if p.Tree.hasSeenImport(name) && p.isAncestor(name) {
+	if p.ResolveContext.hasSeenImport(name) && p.isAncestor(name) {
 		importMode = build.FindOnly
 	}
 
@@ -76,9 +77,18 @@ func (p *Pkg) Resolve() {
 	if err != nil {
 		// TODO: Check the error type?
 		p.IsResolved = false
-		p.Tree.markUnresolvedPkg(name)
+		// this is package we dediced to scan, and probably shouldn't have.
+		// probably can remove this when we have handling of build tags
+		if name != "." {
+			p.ResolveContext.markUnresolvedPkg(name)
+		}
 		return
 	}
+	if name == "." && p.ResolveContext.shouldIgnorePkg(pkg.ImportPath) {
+		p.IsResolved = false
+		return
+	}
+
 	p.Raw = pkg
 	p.Dir = pkg.Dir
 
@@ -88,7 +98,6 @@ func (p *Pkg) Resolve() {
 
 	// Update the name with the fully qualified import path.
 	p.FullImportPath = pkg.ImportPath
-
 	// If this is an builtin package, we don't resolve deeper
 	if pkg.Goroot {
 		p.IsBuiltin = true
@@ -126,22 +135,22 @@ func (p *Pkg) setDeps(imports []string, parentDir string) {
 // addDep creates a Pkg and it's dependencies from an imported package name.
 func (p *Pkg) addDep(name string, parentDir string) {
 	var dep Pkg
-	cached := p.Tree.getCachedPkg(name)
+	cached := p.ResolveContext.getCachedPkg(name)
 	if cached != nil {
 		dep = *cached
 		dep.ParentDir = parentDir
 		dep.Parent = p
 	} else {
 		dep = Pkg{
-			Name: name,
-			Tree: p.Tree,
+			Name:           name,
+			ResolveContext: p.ResolveContext,
 			//TODO: maybe better pass ParentDir as a param to Resolve() instead
 			ParentDir: parentDir,
 			Parent:    p,
 		}
 		dep.Resolve()
 
-		p.Tree.cacheResolvedPackage(&dep)
+		p.ResolveContext.cacheResolvedPackage(&dep)
 	}
 
 	p.Depth = p.depth()
@@ -157,7 +166,7 @@ func (p *Pkg) addDep(name string, parentDir string) {
 	}
 }
 
-// depth returns the depth of the Pkg within the Tree.
+// depth returns the depth of the Pkg within the tree.
 func (p *Pkg) depth() int {
 	if p.Parent == nil {
 		return 0
@@ -228,70 +237,144 @@ func (b sortablePkgsList) Less(i, j int) bool {
 	return b[i].Name < b[j].Name
 }
 
-// Tree represents the top level of a Pkg and the configuration used to
-// initialize and represent its contents.
-type Tree struct {
-	Root *Pkg
+type walkFunc func(path string) error
 
-	UnresolvedPkgs map[string]struct{}
+func walkGoFolders(root string, cb walkFunc) error {
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			return nil
+		}
 
-	PkgCache map[string]*Pkg
+		folderName := info.Name()
+		switch folderName {
+		case "vendor", "Godeps", "node_modules", "testdata", "internal":
+			return filepath.SkipDir
+		}
+		if strings.HasSuffix(folderName, "_test") ||
+			(folderName != "." && strings.HasPrefix(folderName, ".")) {
+			return filepath.SkipDir
+		}
 
-	importCache map[string]struct{}
+		gofiles, err := filepath.Glob(filepath.Join(path, "*.go"))
+		if err != nil {
+			return nil
+		}
+
+		if len(gofiles) > 0 {
+			return cb(path)
+		}
+
+		return nil
+	})
+	return err
 }
 
-// Resolve recursively finds all dependencies for the root Pkg name provided,
-// and the packages it depends on.
-func (t *Tree) Resolve(name string) error {
-	pwd, err := os.Getwd()
+// ResolveContext represents all the pkg trees rooted at all the subfolders with Go code.
+type ResolveContext struct {
+	Roots []*Pkg
+
+	UnresolvedPkgs map[string]struct{}
+	PkgCache       map[string]*Pkg
+	importCache    map[string]struct{}
+
+	ignoredPkgs []string
+}
+
+// Resolve recursively finds all direct & transitive dependencies for all the packages (and sub-packages),
+// rooted at given path
+func (rc *ResolveContext) Resolve(rootPath string, ignoredPkgs []string) error {
+	rc.Roots = []*Pkg{}
+	rc.importCache = map[string]struct{}{}
+	rc.UnresolvedPkgs = map[string]struct{}{}
+	rc.PkgCache = map[string]*Pkg{}
+	rc.ignoredPkgs = ignoredPkgs
+
+	abs, err := filepath.Abs(rootPath)
+	if err != nil {
+		return fmt.Errorf("filepath.Abs(%s) failed with: %s", rootPath, err.Error())
+	}
+	rootPath = abs
+
+	rootImport, err := build.Default.Import(".", rootPath, build.FindOnly)
 	if err != nil {
 		return err
 	}
-
-	t.Root = &Pkg{
-		Name:      name,
-		Tree:      t,
-		ParentDir: pwd,
+	if rootImport.ImportPath == "" || rootImport.ImportPath == "." {
+		return fmt.Errorf("Can't resolve root package at %s.\nIs $GOATH defined correctly?", rootPath)
 	}
 
-	// Reset the import cache each time to ensure a reused Tree doesn't
-	// reuse the same cache.
-	t.importCache = map[string]struct{}{}
-	t.UnresolvedPkgs = map[string]struct{}{}
-	t.PkgCache = map[string]*Pkg{}
-
-	t.Root.Resolve()
-	if !t.Root.IsResolved {
-		return errors.New("unable to resolve root package")
+	virtualRootPkg := &Pkg{
+		Name:           ".",
+		FullImportPath: rootImport.ImportPath,
+		Dir:            rootImport.Dir,
 	}
 
-	return nil
+	rc.Roots = append(rc.Roots, virtualRootPkg)
+
+	return walkGoFolders(rootPath, func(path string) error {
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			return fmt.Errorf("filepath.Abs(%s) failed with: %s", path, err.Error())
+		}
+
+		rootPkg := &Pkg{
+			Name:           ".",
+			ResolveContext: rc,
+			ParentDir:      absPath,
+		}
+		rootPkg.Resolve()
+		rootPkg.Name = rootPkg.FullImportPath
+
+		if rootPkg.IsResolved {
+			rc.Roots = append(rc.Roots, rootPkg)
+		}
+
+		return nil
+	})
 }
 
 // hasSeenImport returns true if the import name provided has already been seen within the tree.
 // This function only returns false for a name once.
-func (t *Tree) hasSeenImport(name string) bool {
-	if _, ok := t.importCache[name]; ok {
+func (rc *ResolveContext) hasSeenImport(name string) bool {
+	if _, ok := rc.importCache[name]; ok {
 		return true
 	}
-	t.importCache[name] = struct{}{}
+	rc.importCache[name] = struct{}{}
 	return false
 }
 
-func (t *Tree) markUnresolvedPkg(name string) {
-	t.UnresolvedPkgs[name] = struct{}{}
+func (rc *ResolveContext) markUnresolvedPkg(name string) {
+	rc.UnresolvedPkgs[name] = struct{}{}
 }
 
-func (t *Tree) cacheResolvedPackage(pkg *Pkg) {
-	t.PkgCache[pkg.Name] = pkg
+func (rc *ResolveContext) cacheResolvedPackage(pkg *Pkg) {
+	rc.PkgCache[pkg.Name] = pkg
 }
 
-func (t *Tree) getCachedPkg(name string) *Pkg {
-	pkg, ok := t.PkgCache[name]
+func (rc *ResolveContext) getCachedPkg(name string) *Pkg {
+	pkg, ok := rc.PkgCache[name]
 	if !ok {
 		return nil
 	}
 	return pkg
+}
+
+func (rc ResolveContext) shouldIgnorePkg(name string) bool {
+	for _, ignored := range rc.ignoredPkgs {
+		if name == ignored {
+			return true
+		}
+
+		if strings.HasSuffix(ignored, "*") {
+			// note that ignoring "url/to/pkg*" will also ignore "url/to/pkg-other",
+			// this is quite confusing, but is dep's behaviour
+			if strings.HasPrefix(name, strings.TrimSuffix(ignored, "*")) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // Node is Grpah's node
@@ -320,7 +403,7 @@ type Graph struct {
 	Options GraphOptions `json:"options"`
 }
 
-func (t *Tree) toGraph() Graph {
+func (rc *ResolveContext) getGraph() Graph {
 	nodesMap := map[string]Node{}
 	edgesMap := map[string]Edge{}
 
@@ -348,7 +431,9 @@ func (t *Tree) toGraph() Graph {
 		}
 	}
 
-	recurse(t.Root)
+	for _, r := range rc.Roots {
+		recurse(r)
+	}
 
 	var nodes []Node
 	for _, v := range nodesMap {
@@ -410,24 +495,26 @@ func prettyPrintJSON(j interface{}) {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Println(`  Scans the imports tree from the Go package in current-dir,
-  and prints the dependency graph in a JSON format that can be imported via npmjs.com/graphlib
+		fmt.Println(`  Scans the imports from all Go pacakges (and subpackages) rooted in current dir,
+  and prints the dependency graph in a JSON format that can be imported via npmjs.com/graphlib.
 		`)
 		flag.PrintDefaults()
 		fmt.Println("")
 	}
+	var ignoredPkgs = flag.String("ignoredPkgs", "", "Comma seperated list of packges (cannonically named) to ignore when scanning subfolders")
 	var outputDOT = flag.Bool("dot", false, "Output as Graphviz DOT format")
 	var outputList = flag.Bool("list", false, "Output a flat JSON array of all reachable deps")
 	flag.Parse()
 
-	var t Tree
+	ignoredPkgsList := strings.Split(*ignoredPkgs, ",")
 
-	err := t.Resolve(".")
+	var rc ResolveContext
+	err := rc.Resolve(".", ignoredPkgsList)
 	if err != nil {
 		panic(err)
 	}
 
-	graph := t.toGraph()
+	graph := rc.getGraph()
 
 	if *outputDOT {
 		fmt.Println(graph.toDOT())
@@ -437,11 +524,11 @@ func main() {
 		prettyPrintJSON(graph)
 	}
 
-	if len(t.UnresolvedPkgs) != 0 {
+	if len(rc.UnresolvedPkgs) != 0 {
 		fmt.Println("\nUnresolved packages:")
 
 		unresolved := []string{}
-		for pkg := range t.UnresolvedPkgs {
+		for pkg := range rc.UnresolvedPkgs {
 			unresolved = append(unresolved, pkg)
 		}
 		sort.Strings(unresolved)

@@ -164,6 +164,232 @@ test('pkg with internal subpkg', function (t) {
     });
 });
 
+test('multi-root project', function (t) {
+  chdirToPkg(['path', 'to', 'multiroot-pkg']);
+
+  return plugin.inspect('.', 'Gopkg.lock')
+    .then(function (result) {
+      var plugin = result.plugin;
+      var pkg = result.package;
+
+      t.test('plugin', function (t) {
+        t.ok(plugin, 'plugin');
+        t.equal(plugin.name, 'snyk-go-plugin', 'name');
+        t.match(plugin.runtime, /^go\d+/, 'engine');
+        t.equal(plugin.targetFile, 'Gopkg.lock');
+        t.end();
+      });
+
+      t.test('root pkg', function (t) {
+        t.match(pkg, {
+          name: 'path/to/multiroot-pkg',
+          version: '0.0.0',
+          from: ['path/to/multiroot-pkg@0.0.0'],
+          packageFormatVersion: 'golang:0.0.1',
+        }, 'root pkg')
+        t.end();
+      });
+
+      t.test('dependencies', function (t) {
+        var deps = pkg.dependencies;
+
+        t.match(deps['gitpub.com/food/salad'], {
+          name: 'gitpub.com/food/salad',
+          version: 'v1.3.7',
+          dependencies: {
+            'gitpub.com/nature/vegetables/tomato': {
+              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+            },
+            'gitpub.com/nature/vegetables/cucamba': {
+              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+            },
+          },
+          from: ['path/to/multiroot-pkg@0.0.0', 'gitpub.com/food/salad@v1.3.7'],
+        }, 'salad depends on tomato and cucamba');
+
+        t.match(deps['gitpub.com/meal/dinner'], {
+          version: 'v0.0.7',
+          dependencies: {
+            'gitpub.com/food/salad': {
+              version: 'v1.3.7',
+              dependencies: {
+                'gitpub.com/nature/vegetables/tomato': {
+                  version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+                  from: [
+                    'path/to/multiroot-pkg@0.0.0',
+                    'gitpub.com/meal/dinner@v0.0.7',
+                    'gitpub.com/food/salad@v1.3.7',
+                    'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
+                  ],
+                },
+              },
+            },
+          },
+        }, 'salad is also a trasitive dependency')
+
+        t.end();
+      });
+
+    }).then(function (result) {
+      var goResolveTool = path.join(__dirname, '..', 'gosrc', 'resolve-deps.go')
+      return subProcess.execute('go', [
+        'run',
+        goResolveTool,
+        '-list',
+        '-ignoredPkgs=path/to/multiroot-pkg/shouldskip/ignored_pkg,path/to/multiroot-pkg/shouldskip/ignored_pkg_wildcard/*', // jscs:ignore maximumLineLength
+      ]).then(function (result) {
+          t.test('resolved deps', function (t) {
+            var list = JSON.parse(result);
+            t.same(list.sort(), [
+              '.',
+              'gitpub.com/food/salad',
+              'gitpub.com/meal/dinner',
+              'gitpub.com/nature/vegetables/cucamba',
+              'gitpub.com/nature/vegetables/tomato',
+              'path/to/multiroot-pkg',
+              'path/to/multiroot-pkg/cmd/tool',
+              'path/to/multiroot-pkg/lib',
+              'path/to/multiroot-pkg/should-ignore-deps/only_test_files',
+            ].sort(), 'list of resolved deps as expected');
+            t.end();
+          })
+        });
+    });
+});
+
+test('multi-root project without code at root', function (t) {
+  chdirToPkg(['path', 'to', 'multiroot-pkg-without-root']);
+
+  return plugin.inspect('.', 'Gopkg.lock')
+    .then(function (result) {
+      var plugin = result.plugin;
+      var pkg = result.package;
+
+      t.test('plugin', function (t) {
+        t.ok(plugin, 'plugin');
+        t.equal(plugin.name, 'snyk-go-plugin', 'name');
+        t.match(plugin.runtime, /^go\d+/, 'engine');
+        t.equal(plugin.targetFile, 'Gopkg.lock');
+        t.end();
+      });
+
+      t.test('root pkg', function (t) {
+        t.match(pkg, {
+          name: 'path/to/multiroot-pkg-without-root',
+          version: '0.0.0',
+          from: ['path/to/multiroot-pkg-without-root@0.0.0'],
+          packageFormatVersion: 'golang:0.0.1',
+        }, 'root pkg')
+        t.end();
+      });
+
+      t.test('dependencies', function (t) {
+        var deps = pkg.dependencies;
+
+        t.match(deps['gitpub.com/food/salad'], {
+          name: 'gitpub.com/food/salad',
+          version: 'v1.3.7',
+          dependencies: {
+            'gitpub.com/nature/vegetables/tomato': {
+              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+            },
+            'gitpub.com/nature/vegetables/cucamba': {
+              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+            },
+          },
+          from: [
+            'path/to/multiroot-pkg-without-root@0.0.0',
+            'gitpub.com/food/salad@v1.3.7',
+          ],
+        }, 'salad depends on tomato and cucamba');
+
+        t.match(deps['gitpub.com/meal/dinner'], {
+          version: 'v0.0.7',
+          dependencies: {
+            'gitpub.com/food/salad': {
+              version: 'v1.3.7',
+              dependencies: {
+                'gitpub.com/nature/vegetables/tomato': {
+                  version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+                  from: [
+                    'path/to/multiroot-pkg-without-root@0.0.0',
+                    'gitpub.com/meal/dinner@v0.0.7',
+                    'gitpub.com/food/salad@v1.3.7',
+                    'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
+                  ],
+                },
+              },
+            },
+          },
+        }, 'salad is also a trasitive dependency');
+
+        t.match(deps['gitpub.com/meal/dinner/desert'], {
+          version: 'v0.0.7',
+          dependencies: {},
+          from: [
+            'path/to/multiroot-pkg-without-root@0.0.0',
+            'gitpub.com/meal/dinner/desert@v0.0.7',
+          ],
+        }, 'dinner/desert is a direct dependency');
+
+        t.end();
+      });
+
+    }).then(function (result) {
+      var goResolveTool = path.join(__dirname, '..', 'gosrc', 'resolve-deps.go')
+      return subProcess.execute('go', [
+        'run',
+        goResolveTool,
+        '-list',
+      ]).then(function (result) {
+          t.test('resolved deps', function (t) {
+            var list = JSON.parse(result);
+            t.same(list.sort(), [
+              '.',
+              'gitpub.com/food/salad',
+              'gitpub.com/meal/dinner',
+              'gitpub.com/meal/dinner/desert',
+              'gitpub.com/nature/vegetables/cucamba',
+              'gitpub.com/nature/vegetables/tomato',
+              'path/to/multiroot-pkg-without-root/cmd/tool',
+              'path/to/multiroot-pkg-without-root/cmd/util',
+              'path/to/multiroot-pkg-without-root/lib',
+            ].sort(), 'list of resolved deps as expected');
+            t.end();
+          })
+        });
+    });
+});
+
+test('no Go code', function (t) {
+  chdirToPkg(['path', 'to', 'empty']);
+
+  return plugin.inspect('.', 'Gopkg.lock')
+    .then(function (result) {
+      var plugin = result.plugin;
+      var pkg = result.package;
+
+      t.test('plugin', function (t) {
+        t.ok(plugin, 'plugin');
+        t.equal(plugin.name, 'snyk-go-plugin', 'name');
+        t.match(plugin.runtime, /^go\d+/, 'engine');
+        t.equal(plugin.targetFile, 'Gopkg.lock');
+        t.end();
+      });
+
+      t.test('root pkg', function (t) {
+        t.same(pkg, {
+          name: 'path/to/empty',
+          dependencies: {},
+          version: '0.0.0',
+          from: ['path/to/empty@0.0.0'],
+          packageFormatVersion: 'golang:0.0.1',
+        }, 'root pkg')
+        t.end();
+      });
+    }
+  );
+});
 
 test('missing vendor/ folder', function (t) {
   chdirToPkg(['path', 'to', 'pkg-with-missing-vendor-folder']);
@@ -227,6 +453,40 @@ test('cyclic import', function (t) {
 
 test('corrupt Gopkg.lock', function (t) {
   chdirToPkg(['path', 'to', 'pkg-with-corrupt-gopkg-lock']);
+
+  return plugin.inspect('.', 'Gopkg.lock')
+    .then(function (result) {
+      t.fail('should have failed');
+    }).catch(function (error) {
+      t.pass();
+    });
+});
+
+test('corrupt Gopkg.toml', function (t) {
+  chdirToPkg(['path', 'to', 'pkg-with-corrupt-gopkg-toml']);
+
+  return plugin.inspect('.', 'Gopkg.lock')
+    .then(function (result) {
+      t.fail('should have failed');
+    }).catch(function (error) {
+      t.pass();
+    });
+});
+
+test('missing Gopkg.toml', function (t) {
+  chdirToPkg(['path', 'to', 'pkg-with-missing-gopkg-toml']);
+
+  return plugin.inspect('.', 'Gopkg.lock')
+    .then(function (result) {
+      t.fail('should have failed');
+    }).catch(function (error) {
+      t.pass();
+    });
+});
+
+test('GOPATH not defined', function (t) {
+  chdirToPkg(['path', 'to', 'pkg']);
+  delete process.env['GOPATH'];
 
   return plugin.inspect('.', 'Gopkg.lock')
     .then(function (result) {
