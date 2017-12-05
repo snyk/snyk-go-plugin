@@ -8,7 +8,7 @@
   },
   "main": "lib/index.js",
   "scripts": {
-    "lint": "jscs `find ./lib -name '*.js'` -v && jscs `find ./test -name '*.js'` -v",
+    "lint": "jscs `find ./lib -name '*.js'` -v && jscs `find ./test -name '*.js' | grep -v fixtures` -v",
     "test-functional": "tap `ls ./test/*.test.js`",
     "test-system": "tap --timeout=300 `ls ./test/system/*.test.js`",
     "test": "npm run test-functional && npm run test-system",
