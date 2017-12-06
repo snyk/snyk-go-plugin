@@ -1,5 +1,5 @@
 /*
-	This code is based on https://github.com/KyleBanks/depth
+This code is based on https://github.com/KyleBanks/depth
 
 MIT License
 
@@ -76,7 +76,7 @@ func (p *Pkg) Resolve() {
 	if err != nil {
 		// TODO: Check the error type?
 		p.IsResolved = false
-		p.Tree.rememverUnresolvedPkg(name)
+		p.Tree.markUnresolvedPkg(name)
 		return
 	}
 	p.Raw = pkg
@@ -96,10 +96,6 @@ func (p *Pkg) Resolve() {
 	}
 
 	imports := pkg.Imports
-	if p.Tree.ResolveTest {
-		imports = append(imports, append(pkg.TestImports, pkg.XTestImports...)...)
-	}
-
 	p.setDeps(imports, pkg.Dir)
 }
 
@@ -237,8 +233,6 @@ func (b sortablePkgsList) Less(i, j int) bool {
 type Tree struct {
 	Root *Pkg
 
-	ResolveTest bool
-
 	UnresolvedPkgs map[string]struct{}
 
 	PkgCache map[string]*Pkg
@@ -284,7 +278,7 @@ func (t *Tree) hasSeenImport(name string) bool {
 	return false
 }
 
-func (t *Tree) rememverUnresolvedPkg(name string) {
+func (t *Tree) markUnresolvedPkg(name string) {
 	t.UnresolvedPkgs[name] = struct{}{}
 }
 
@@ -446,8 +440,13 @@ func main() {
 	if len(t.UnresolvedPkgs) != 0 {
 		fmt.Println("\nUnresolved packages:")
 
-		for unresolved := range t.UnresolvedPkgs {
-			fmt.Println(" - ", unresolved)
+		unresolved := []string{}
+		for pkg := range t.UnresolvedPkgs {
+			unresolved = append(unresolved, pkg)
+		}
+		sort.Strings(unresolved)
+		for _, pkg := range unresolved {
+			fmt.Println(" - ", pkg)
 		}
 
 		os.Exit(1)
