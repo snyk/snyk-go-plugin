@@ -440,8 +440,13 @@ func main() {
 	if len(t.UnresolvedPkgs) != 0 {
 		fmt.Println("\nUnresolved packages:")
 
-		for unresolved := range t.UnresolvedPkgs {
-			fmt.Println(" - ", unresolved)
+		unresolved := []string{}
+		for pkg := range t.UnresolvedPkgs {
+			unresolved = append(unresolved, pkg)
+		}
+		sort.Strings(unresolved)
+		for _, pkg := range unresolved {
+			fmt.Println(" - ", pkg)
 		}
 
 		os.Exit(1)

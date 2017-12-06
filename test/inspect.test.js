@@ -174,7 +174,10 @@ test('missing vendor/ folder', function (t) {
     }).catch(function (error) {
       t.equal(
         error.message,
-        'Unresolved imports found, please run `dep ensure`');
+        'Unresolved packages:\n' +
+        ' -  gitpub.com/food/salad\n' +
+        ' -  gitpub.com/meal/dinner\n' +
+        '\nUnresolved imports found, please run `dep ensure`');
     });
 });
 
@@ -187,7 +190,10 @@ test('missing some packages in vendor/ folder (dep)', function (t) {
     }).catch(function (error) {
       t.equal(
         error.message,
-        'Unresolved imports found, please run `dep ensure`');
+        'Unresolved packages:\n' +
+        ' -  gitpub.com/nature/vegetables/cucamba\n' +
+        ' -  gitpub.com/nature/vegetables/tomato\n' +
+        '\nUnresolved imports found, please run `dep ensure`');
     });
 });
 
@@ -200,7 +206,10 @@ test('missing some packages in vendor/ folder (govendor)', function (t) {
     }).catch(function (error) {
       t.equal(
         error.message,
-        'Unresolved imports found, please run `govendor fetch +outside`');
+        'Unresolved packages:\n' +
+        ' -  gitpub.com/nature/vegetables/cucamba\n' +
+        ' -  gitpub.com/nature/vegetables/tomato\n' +
+        '\nUnresolved imports found, please run `govendor fetch +outside`');
     });
 });
 
