@@ -1,0 +1,2 @@
+ignored = ["path/to/multiroot-pkg/shouldskip/ignored_pkg",
+    "path/to/multiroot-pkg/shouldskip/ignored_pkg_wildcard*"]
