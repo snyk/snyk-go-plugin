@@ -1,0 +1,23 @@
+{
+	"Deps": [
+		{
+			"ImportPath": "gitpub.com/food/salad",
+			"Rev": "8b100cedd15d96a9ba0f4e48fd852d21b93b0f33",
+			"Comment": "v1.3.7"
+		},
+		{
+			"ImportPath": "gitpub.com/nature/vegetables/tomato",
+			"Rev": "b6ffb7d62206806b573348160795ea16a00940a6",
+			"Comment": "v0.1.0-115-g3b1ae45"
+		},
+		{
+			"ImportPath": "gitpub.com/nature/vegetables/cucamba",
+			"Rev": "b6ffb7d62206806b573348160795ea16a00940a6"
+		},
+		{
+			"ImportPath": "gitpub.com/meal/dinner",
+			"Rev": "2ebf14b5ac2969032b6c7f6f3e9ff1b2a8db0075",
+			"Comment": "v0.0.7"
+		}
+	]
+}
