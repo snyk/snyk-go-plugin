@@ -42,4 +42,5 @@ func WalkGoFolders(root string, cb WalkFunc) error {
 }
 
 // WalkFunc defines the prototype for WalkGoFolders's callback.
+// the error passed as the return value of the undrelying filepath.Walk
 type WalkFunc func(path string) error
