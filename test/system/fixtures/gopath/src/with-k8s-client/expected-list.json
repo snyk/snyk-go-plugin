@@ -153,5 +153,5 @@
   "k8s.io/client-go/util/flowcontrol@v4.0.0",
   "k8s.io/client-go/util/integer@v4.0.0",
   "k8s.io/kube-openapi/pkg/common@#abfc5fbe1cf87ee697db107fdfd24c32fe4397a8",
-  "with-k8s-client@0.0.0"
+  "with-k8s-client@"
 ]
