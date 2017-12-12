@@ -23,7 +23,8 @@ func WalkGoFolders(root string, cb WalkFunc) error {
 			return filepath.SkipDir
 		}
 		if strings.HasSuffix(folderName, "_test") ||
-			(folderName != "." && strings.HasPrefix(folderName, ".")) {
+			(folderName != "." && strings.HasPrefix(folderName, ".")) ||
+			strings.HasPrefix(folderName, "_") {
 			return filepath.SkipDir
 		}
 
