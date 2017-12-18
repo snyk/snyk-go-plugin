@@ -391,6 +391,76 @@ test('no Go code', function (t) {
   );
 });
 
+test('with external ignores', function (t) {
+  chdirToPkg(['path', 'to', 'pkg-with-ignores']);
+
+  return plugin.inspect('.', 'Gopkg.lock')
+    .then(function (result) {
+      var plugin = result.plugin;
+      var pkg = result.package;
+
+      t.test('plugin', function (t) {
+        t.ok(plugin, 'plugin');
+        t.equal(plugin.name, 'snyk-go-plugin', 'name');
+        t.match(plugin.runtime, /^go\d+/, 'engine');
+        t.equal(plugin.targetFile, 'Gopkg.lock');
+        t.end();
+      });
+
+      t.test('root pkg', function (t) {
+        t.match(pkg, {
+          name: 'path/to/pkg-with-ignores',
+          version: '',
+          from: ['path/to/pkg-with-ignores@'],
+          packageFormatVersion: 'golang:0.0.1',
+        }, 'root pkg')
+        t.end();
+      });
+
+      t.test('dependencies', function (t) {
+        var deps = pkg.dependencies;
+
+        t.match(deps['gitpub.com/food/salad'], {
+          name: 'gitpub.com/food/salad',
+          version: 'v1.3.7',
+          dependencies: {
+            'gitpub.com/nature/vegetables/tomato': {
+              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+            },
+            'gitpub.com/nature/vegetables/cucamba': {
+              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+            },
+          },
+          from: ['path/to/pkg-with-ignores@', 'gitpub.com/food/salad@v1.3.7'],
+        }, 'salad depends on tomato and cucamba, even though vegetables are ignored');
+
+        t.type(deps['gitpub.com/nature/vegetables'], 'undefined', 'vegetables pkg is ignored');
+
+        t.match(deps['gitpub.com/meal/dinner'], {
+          version: 'v0.0.7',
+          dependencies: {
+            'gitpub.com/food/salad': {
+              version: 'v1.3.7',
+              dependencies: {
+                'gitpub.com/nature/vegetables/tomato': {
+                  version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+                  from: [
+                    'path/to/pkg-with-ignores@',
+                    'gitpub.com/meal/dinner@v0.0.7',
+                    'gitpub.com/food/salad@v1.3.7',
+                    'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
+                  ],
+                },
+              },
+            },
+          },
+        }, 'salad is also a trasitive dependency')
+
+        t.end();
+      });
+    });
+});
+
 test('missing vendor/ folder', function (t) {
   chdirToPkg(['path', 'to', 'pkg-with-missing-vendor-folder']);
 
