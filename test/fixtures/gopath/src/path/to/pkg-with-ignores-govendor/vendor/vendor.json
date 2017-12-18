@@ -1,6 +1,6 @@
 {
 	"comment": "v1.2",
-	"ignore": "",
+	"ignore": "github.com/ignore/me gitpub.com/nature/vegetables/",
 	"rootPath": "we-ignore-this",
 	"package": [
 		{
