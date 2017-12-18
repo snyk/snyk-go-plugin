@@ -1,0 +1,8 @@
+# this is a comment
+#
+
+ignored = [
+    "github.com/ignore/me",
+    "github.com/ignore/wildcard*",
+    "gitpub.com/nature/vegetables"
+    ]

@@ -119,6 +119,10 @@ func (p *Pkg) setDeps(imports []string, parentDir string) {
 		}
 		unique[imp] = struct{}{}
 
+		if p.resolveContext.shouldIgnorePkg(imp) {
+			continue
+		}
+
 		p.addDep(imp, parentDir)
 	}
 
