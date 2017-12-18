@@ -149,7 +149,7 @@ func (rc *ResolveContext) resolveVirtualRoot(rootPath string) (*Pkg, error) {
 		return nil, err
 	}
 	if rootImport.ImportPath == "" || rootImport.ImportPath == "." {
-		return nil, fmt.Errorf("Can't resolve root package at %s.\nIs $GOATH defined correctly?", rootPath)
+		return nil, fmt.Errorf("Can't resolve root package at %s.\nIs $GOPATH defined correctly?", rootPath)
 	}
 
 	virtualRootPkg := &Pkg{
