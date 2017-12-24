@@ -8,9 +8,9 @@
   },
   "main": "lib/index.js",
   "scripts": {
-    "lint": "jscs `find ./lib -name '*.js'` -v && jscs `find ./test -name '*.js' | grep -v fixtures` -v",
-    "test-functional": "tap `ls ./test/*.test.js`",
-    "test-system": "tap --timeout=300 `ls ./test/system/*.test.js`",
+    "lint": "jscs ./lib ./test/*.js ./test/system/*.js -v",
+    "test-functional": "tap -R spec ./test/*.test.js",
+    "test-system": "tap --timeout=300 -R spec ./test/system/*.test.js",
     "test": "npm run test-functional && npm run test-system",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post",
     "watch": "nodemon -e 'js go'  -x 'npm run test-functional'"
