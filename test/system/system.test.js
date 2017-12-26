@@ -128,7 +128,7 @@ function fetchDeps(targetFile) {
   if (targetFile.indexOf('vendor.json') >= 0) {
     return subProcess.execute(
       process.env['GOPATH'] + '/bin/govendor',
-      ['fetch', '+outside']);
+      ['sync']);
   }
 
   throw new Error('unrecognized targetFile: ' + targetFile);
