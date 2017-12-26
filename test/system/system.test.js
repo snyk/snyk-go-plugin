@@ -32,8 +32,9 @@ test('prometheus 1.8', function (t) {
   ).then(function () {
     return testPkg(t,
       ['github.com', 'prometheus', 'prometheus', 'cmd', 'prometheus'],
-      '../../vendor/vendor.json',
-      '../../../prometheus-cmd-prometheus-expected-list.json'
+      ['..', '..', 'vendor', 'vendor.json'].join(path.sep),
+      ['..', '..', '..',
+        'prometheus-cmd-prometheus-expected-list.json',].join(path.sep)
     );
   });
 });
