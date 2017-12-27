@@ -494,7 +494,7 @@ test('with external ignores (govendor)', function (t) {
         var deps = pkg.dependencies;
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
-          version: 'v1.3.7'
+          version: 'v1.3.7',
         }, 'salad is a dep');
 
         var saladDeps = deps['gitpub.com/food/salad'].dependencies;
