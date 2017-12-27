@@ -567,7 +567,7 @@ test('missing some packages in vendor/ folder (govendor)', function (t) {
         'Unresolved packages:\n' +
         ' -  gitpub.com/nature/vegetables/cucamba\n' +
         ' -  gitpub.com/nature/vegetables/tomato\n' +
-        '\nUnresolved imports found, please run `govendor fetch +outside`');
+        '\nUnresolved imports found, please run `govendor sync`');
     });
 });
 
