@@ -12,6 +12,8 @@
     "test-functional": "tap ./test/*.test.js",
     "test-system": "tap --timeout=300 ./test/system/*.test.js",
     "test": "npm run test-functional && npm run test-system",
+    "test-system-windows": "tap --timeout=300 ./test/system/*.test.js -g \"^(?!.*prometheus)\"",
+    "test-windows": "npm run test-functional && npm run test-system-windows",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post",
     "watch": "nodemon -e 'js go'  -x 'npm run test-functional'"
   },
