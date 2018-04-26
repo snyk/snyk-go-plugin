@@ -24,7 +24,6 @@ test('happy inspect', function (t) {
         t.match(pkg, {
           name: 'path/to/pkg',
           version: '',
-          from: ['path/to/pkg@'],
           packageFormatVersion: 'golang:0.0.1',
         }, 'root pkg')
         t.end();
@@ -44,7 +43,6 @@ test('happy inspect', function (t) {
               version: '#b6ffb7d62206806b573348160795ea16a00940a6',
             },
           },
-          from: ['path/to/pkg@', 'gitpub.com/food/salad@v1.3.7'],
         }, 'salad depends on tomato and cucamba');
 
         t.match(deps['gitpub.com/meal/dinner'], {
@@ -55,12 +53,6 @@ test('happy inspect', function (t) {
               dependencies: {
                 'gitpub.com/nature/vegetables/tomato': {
                   version: '#b6ffb7d62206806b573348160795ea16a00940a6',
-                  from: [
-                    'path/to/pkg@',
-                    'gitpub.com/meal/dinner@v0.0.7',
-                    'gitpub.com/food/salad@v1.3.7',
-                    'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
-                  ],
                 },
               },
             },
@@ -99,12 +91,6 @@ test('pkg with local import', function (t) {
                   dependencies: {
                     'gitpub.com/nature/vegetables/tomato': {
                       version: '#b6ffb7d62206806b573348160795ea16a00940a6',
-                      from: [
-                        'path/to/pkg-with-local-import@',
-                        'gitpub.com/meal/dinner@v0.0.7',
-                        'gitpub.com/food/salad@v1.3.7',
-                        'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
-                      ],
                     },
                   },
                 },
@@ -145,12 +131,6 @@ test('pkg with internal subpkg', function (t) {
                   dependencies: {
                     'gitpub.com/nature/vegetables/tomato': {
                       version: '#b6ffb7d62206806b573348160795ea16a00940a6',
-                      from: [
-                        'path/to/pkg-with-internal-subpkg@',
-                        'gitpub.com/meal/dinner@v0.0.7',
-                        'gitpub.com/food/salad@v1.3.7',
-                        'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
-                      ],
                     },
                   },
                 },
@@ -184,7 +164,6 @@ test('multi-root project', function (t) {
         t.match(pkg, {
           name: 'path/to/multiroot-pkg',
           version: '',
-          from: ['path/to/multiroot-pkg@'],
           packageFormatVersion: 'golang:0.0.1',
         }, 'root pkg')
         t.end();
@@ -204,7 +183,6 @@ test('multi-root project', function (t) {
               version: '#b6ffb7d62206806b573348160795ea16a00940a6',
             },
           },
-          from: ['path/to/multiroot-pkg@', 'gitpub.com/food/salad@v1.3.7'],
         }, 'salad depends on tomato and cucamba');
 
         t.match(deps['gitpub.com/meal/dinner'], {
@@ -215,12 +193,6 @@ test('multi-root project', function (t) {
               dependencies: {
                 'gitpub.com/nature/vegetables/tomato': {
                   version: '#b6ffb7d62206806b573348160795ea16a00940a6',
-                  from: [
-                    'path/to/multiroot-pkg@',
-                    'gitpub.com/meal/dinner@v0.0.7',
-                    'gitpub.com/food/salad@v1.3.7',
-                    'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
-                  ],
                 },
               },
             },
@@ -277,7 +249,6 @@ test('multi-root project without code at root', function (t) {
         t.match(pkg, {
           name: 'path/to/multiroot-pkg-without-root',
           version: '',
-          from: ['path/to/multiroot-pkg-without-root@'],
           packageFormatVersion: 'golang:0.0.1',
         }, 'root pkg')
         t.end();
@@ -297,10 +268,6 @@ test('multi-root project without code at root', function (t) {
               version: '#b6ffb7d62206806b573348160795ea16a00940a6',
             },
           },
-          from: [
-            'path/to/multiroot-pkg-without-root@',
-            'gitpub.com/food/salad@v1.3.7',
-          ],
         }, 'salad depends on tomato and cucamba');
 
         t.match(deps['gitpub.com/meal/dinner'], {
@@ -311,12 +278,6 @@ test('multi-root project without code at root', function (t) {
               dependencies: {
                 'gitpub.com/nature/vegetables/tomato': {
                   version: '#b6ffb7d62206806b573348160795ea16a00940a6',
-                  from: [
-                    'path/to/multiroot-pkg-without-root@',
-                    'gitpub.com/meal/dinner@v0.0.7',
-                    'gitpub.com/food/salad@v1.3.7',
-                    'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
-                  ],
                 },
               },
             },
@@ -326,10 +287,6 @@ test('multi-root project without code at root', function (t) {
         t.match(deps['gitpub.com/meal/dinner/desert'], {
           version: 'v0.0.7',
           dependencies: {},
-          from: [
-            'path/to/multiroot-pkg-without-root@',
-            'gitpub.com/meal/dinner/desert@v0.0.7',
-          ],
         }, 'dinner/desert is a direct dependency');
 
         t.end();
@@ -382,7 +339,6 @@ test('no Go code', function (t) {
           name: 'path/to/empty',
           dependencies: {},
           version: '',
-          from: ['path/to/empty@'],
           packageFormatVersion: 'golang:0.0.1',
         }, 'root pkg')
         t.end();
@@ -411,7 +367,6 @@ test('with external ignores', function (t) {
         t.match(pkg, {
           name: 'path/to/pkg-with-ignores',
           version: '',
-          from: ['path/to/pkg-with-ignores@'],
           packageFormatVersion: 'golang:0.0.1',
         }, 'root pkg')
         t.end();
@@ -431,7 +386,6 @@ test('with external ignores', function (t) {
               version: '#b6ffb7d62206806b573348160795ea16a00940a6',
             },
           },
-          from: ['path/to/pkg-with-ignores@', 'gitpub.com/food/salad@v1.3.7'],
         }, 'salad depends on tomato and cucamba, even though vegetables are ignored'); // jscs:ignore maximumLineLength
 
 
@@ -447,12 +401,6 @@ test('with external ignores', function (t) {
               dependencies: {
                 'gitpub.com/nature/vegetables/tomato': {
                   version: '#b6ffb7d62206806b573348160795ea16a00940a6',
-                  from: [
-                    'path/to/pkg-with-ignores@',
-                    'gitpub.com/meal/dinner@v0.0.7',
-                    'gitpub.com/food/salad@v1.3.7',
-                    'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
-                  ],
                 },
               },
             },
@@ -484,7 +432,6 @@ test('with external ignores (govendor)', function (t) {
         t.match(pkg, {
           name: 'path/to/pkg-with-ignores-govendor',
           version: '',
-          from: ['path/to/pkg-with-ignores-govendor@'],
           packageFormatVersion: 'golang:0.0.1',
         }, 'root pkg')
         t.end();
@@ -648,7 +595,6 @@ test('pkg without external deps', function (t) {
         t.same(pkg, {
           name: 'path/to/pkg-without-deps',
           version: '',
-          from: ['path/to/pkg-without-deps@'],
           packageFormatVersion: 'golang:0.0.1',
           dependencies: {},
         });
@@ -677,7 +623,6 @@ test('happy inspect govendor', function (t) {
         t.match(pkg, {
           name: 'path/to/pkg',
           version: '',
-          from: ['path/to/pkg@'],
           packageFormatVersion: 'golang:0.0.1',
         }, 'root pkg');
         t.end();
@@ -697,7 +642,6 @@ test('happy inspect govendor', function (t) {
               version: '#b6ffb7d62206806b573348160795ea16a00940a6',
             },
           },
-          from: ['path/to/pkg@', 'gitpub.com/food/salad@v1.3.7'],
         }, 'salad depends on tomato and cucamba');
 
         t.match(deps['gitpub.com/meal/dinner'], {
@@ -708,12 +652,6 @@ test('happy inspect govendor', function (t) {
               dependencies: {
                 'gitpub.com/nature/vegetables/tomato': {
                   version: '#b6ffb7d62206806b573348160795ea16a00940a6',
-                  from: [
-                    'path/to/pkg@',
-                    'gitpub.com/meal/dinner@v0.0.7',
-                    'gitpub.com/food/salad@v1.3.7',
-                    'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
-                  ],
                 },
               },
             },
@@ -745,7 +683,6 @@ test('inspect govendor with alternate case', function (t) {
         t.match(pkg, {
           name: 'path/to/pkg-with-alternate-govendor',
           version: '',
-          from: ['path/to/pkg-with-alternate-govendor@'],
           packageFormatVersion: 'golang:0.0.1',
           dependencies: {
             'gitpub.com/drink/juice': {
@@ -770,9 +707,6 @@ test('inspect govendor with alternate case', function (t) {
               version: '#b6ffb7d62206806b573348160795ea16a00940a6',
             },
           },
-          from: [
-            'path/to/pkg-with-alternate-govendor@',
-            'gitpub.com/food/salad@v1.3.7',],
         }, 'salad depends on tomato and cucamba');
 
         t.match(deps['gitpub.com/meal/dinner'], {
@@ -783,12 +717,6 @@ test('inspect govendor with alternate case', function (t) {
               dependencies: {
                 'gitpub.com/nature/vegetables/tomato': {
                   version: '#b6ffb7d62206806b573348160795ea16a00940a6',
-                  from: [
-                    'path/to/pkg-with-alternate-govendor@',
-                    'gitpub.com/meal/dinner@v0.0.7',
-                    'gitpub.com/food/salad@v1.3.7',
-                    'gitpub.com/nature/vegetables/tomato@#b6ffb7d62206806b573348160795ea16a00940a6', // jscs:ignore maximumLineLength
-                  ],
                 },
               },
             },
