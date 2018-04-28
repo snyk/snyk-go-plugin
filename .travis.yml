@@ -7,7 +7,6 @@ node_js:
   - "8"
   - "6"
   - "4"
-  - "0.12"
 env:
   - GO_VERSION=1.9.4
   - GO_VERSION=1.10
