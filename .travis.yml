@@ -8,8 +8,8 @@ node_js:
   - "6"
   - "4"
 env:
-  - GO_VERSION=1.9.4
-  - GO_VERSION=1.10
+  - GO_VERSION=1.9.5
+  - GO_VERSION=1.10.1
 cache:
   directories:
     - node_modules
@@ -25,7 +25,7 @@ jobs:
       node_js: "8"
       script: skip
       after_success:
-        - TRAVIS_JOB_NUMBER=WORKAROUND.1 npm run semantic-release
+        - npm run semantic-release
 branches:
   only:
     - master
