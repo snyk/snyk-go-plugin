@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "jscs": "^3.0.7",
-    "semantic-release": "^6.3.6",
+    "semantic-release": "^8.2.3",
     "tap": "^10.7.0",
     "tap-only": "0.0.5"
   }
