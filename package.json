@@ -21,7 +21,8 @@
   "license": "Apache-2.0",
   "dependencies": {
     "graphlib": "^2.1.1",
-    "toml": "^2.3.2"
+    "toml": "^2.3.2",
+    "tmp": "0.0.33"
   },
   "devDependencies": {
     "jscs": "^3.0.7",
