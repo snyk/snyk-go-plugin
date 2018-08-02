@@ -19,13 +19,13 @@ func prettyPrintJSON(j interface{}) {
 
 func main() {
 	flag.Usage = func() {
-		fmt.Println(`  Scans the imports from all Go pacakges (and subpackages) rooted in current dir,
+		fmt.Println(`  Scans the imports from all Go packages (and subpackages) rooted in current dir,
   and prints the dependency graph in a JSON format that can be imported via npmjs.com/graphlib.
 		`)
 		flag.PrintDefaults()
 		fmt.Println("")
 	}
-	var ignoredPkgs = flag.String("ignoredPkgs", "", "Comma seperated list of packges (cannonically named) to ignore when scanning subfolders")
+	var ignoredPkgs = flag.String("ignoredPkgs", "", "Comma separated list of packages (canonically named) to ignore when scanning subfolders")
 	var outputDOT = flag.Bool("dot", false, "Output as Graphviz DOT format")
 	var outputList = flag.Bool("list", false, "Output a flat JSON array of all reachable deps")
 	flag.Parse()
