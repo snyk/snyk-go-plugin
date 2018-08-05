@@ -9,10 +9,10 @@
   "main": "lib/index.js",
   "scripts": {
     "lint": "jscs ./lib ./test/*.js ./test/system/*.js -v",
-    "test-functional": "tap ./test/*.test.js",
-    "test-system": "tap --timeout=300 ./test/system/*.test.js",
+    "test-functional": "tap ./test/*.test.js -R spec",
+    "test-system": "tap -R spec --timeout=300 ./test/system/*.test.js",
     "test": "npm run test-functional && npm run test-system",
-    "test-system-windows": "tap --timeout=300 ./test/system/*.test.js -g \"^(?!.*prometheus)\"",
+    "test-system-windows": "tap -R spec --timeout=300 ./test/system/*.test.js -g \"^(?!.*prometheus)\"",
     "test-windows": "npm run test-functional && npm run test-system-windows",
     "semantic-release": "semantic-release",
     "watch": "nodemon -e 'js go'  -x 'npm run test-functional'"
@@ -27,7 +27,7 @@
   "devDependencies": {
     "jscs": "^3.0.7",
     "semantic-release": "^15",
-    "tap": "^10.7.0",
+    "tap": "^12.0.1",
     "tap-only": "0.0.5"
   }
 }
