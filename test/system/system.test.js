@@ -3,14 +3,14 @@ var path = require('path');
 var fs = require('fs');
 
 var plugin = require('../../lib');
-var subProcess = require('../../lib/sub-process')
+var subProcess = require('../../lib/sub-process');
 
-test('install dep', {timeout: 120 * 1000}, function (t) {
+test('install dep', {timeout: 120 * 1000}, function () {
   chdirToPkg([]);
   return getGolangDep();
 });
 
-test('install govendor', {timeout: 120 * 1000}, function (t) {
+test('install govendor', {timeout: 120 * 1000}, function () {
   chdirToPkg([]);
   return getGovendor();
 });
@@ -34,7 +34,7 @@ test('prometheus 1.8', function (t) {
       ['github.com', 'prometheus', 'prometheus', 'cmd', 'prometheus'],
       ['..', '..', 'vendor', 'vendor.json'].join(path.sep),
       ['..', '..', '..',
-        'prometheus-cmd-prometheus-expected-list.json',].join(path.sep)
+        'prometheus-cmd-prometheus-expected-list.json'].join(path.sep)
     );
   });
 });
@@ -48,7 +48,6 @@ function testPkg(t, pkgPathArray, targetFile, expectedPkgsListFile) {
 
     return plugin.inspect('.', targetFile)
       .then(function (result) {
-        var plugin = result.plugin;
         var pkg = result.package;
 
         t.ok(JSON.stringify(pkg).length < 2 * 1024 * 1024, 'result below 2MB');
@@ -57,7 +56,7 @@ function testPkg(t, pkgPathArray, targetFile, expectedPkgsListFile) {
           JSON.parse(fs.readFileSync(expectedPkgsListFile)).sort(),
           'list of packages is as expected'
         );
-      })
+      });
   }).catch(function (err) {
     console.log(err.stack);
     t.bailout(err);
@@ -79,7 +78,7 @@ function pkgsList(pkgTree) {
 
     childList.forEach(function (d) {
       pkgsMap[d] = true;
-    })
+    });
   });
 
   return Object.keys(pkgsMap);
@@ -87,10 +86,6 @@ function pkgsList(pkgTree) {
 
 function chdirToPkg(pkgPathArray) {
   process.env['GOPATH'] = path.resolve(__dirname, 'fixtures', 'gopath');
-  var koko = path.resolve.apply(
-      null,
-      [__dirname, 'fixtures', 'gopath', 'src'].concat(pkgPathArray)
-    );
   process.chdir(
     // use apply() instead of the spread `...` operator to support node v4
     path.resolve.apply(
@@ -102,8 +97,8 @@ function chdirToPkg(pkgPathArray) {
 
 function cleanup() {
   return subProcess.execute('go', ['clean']).then(function () {
-    return subProcess.execute('rm', ['-rf', './vendor/'])
-  })
+    return subProcess.execute('rm', ['-rf', './vendor/']);
+  });
 }
 
 function getGolangDep() {
