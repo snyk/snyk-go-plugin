@@ -14,7 +14,7 @@
     "test": "npm run test-functional && npm run test-system",
     "test-system-windows": "tap --timeout=300 ./test/system/*.test.js -g \"^(?!.*prometheus)\"",
     "test-windows": "npm run test-functional && npm run test-system-windows",
-    "semantic-release": "semantic-release pre && npm publish && semantic-release post",
+    "semantic-release": "semantic-release",
     "watch": "nodemon -e 'js go'  -x 'npm run test-functional'"
   },
   "author": "snyk.io",
@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "jscs": "^3.0.7",
-    "semantic-release": "^8.2.3",
+    "semantic-release": "^15",
     "tap": "^10.7.0",
     "tap-only": "0.0.5"
   }
