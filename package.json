@@ -22,8 +22,9 @@
   "license": "Apache-2.0",
   "dependencies": {
     "graphlib": "^2.1.1",
-    "toml": "^2.3.2",
-    "tmp": "0.0.33"
+    "lodash.endswith": "^4.2.1",
+    "tmp": "0.0.33",
+    "toml": "^2.3.2"
   },
   "devDependencies": {
     "eslint": "^4.11.0",
