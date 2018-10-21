@@ -64,6 +64,49 @@ test('happy inspect', function (t) {
     });
 });
 
+test('pkg relative path', function (t) {
+  chdirToPkg(['path']);
+
+  return plugin.inspect('.', 'to/pkg/Gopkg.lock')
+    .then(function (result) {
+      // var plugin = result.plugin;
+      var pkg = result.package;
+
+      t.test('dependencies', function (t) {
+        var deps = pkg.dependencies;
+
+        t.match(deps['gitpub.com/food/salad'], {
+          name: 'gitpub.com/food/salad',
+          version: 'v1.3.7',
+          dependencies: {
+            'gitpub.com/nature/vegetables/tomato': {
+              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+            },
+            'gitpub.com/nature/vegetables/cucamba': {
+              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+            },
+          },
+        }, 'salad depends on tomato and cucamba');
+
+        t.match(deps['gitpub.com/meal/dinner'], {
+          version: 'v0.0.7',
+          dependencies: {
+            'gitpub.com/food/salad': {
+              version: 'v1.3.7',
+              dependencies: {
+                'gitpub.com/nature/vegetables/tomato': {
+                  version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+                },
+              },
+            },
+          },
+        }, 'salad is also a trasitive dependency');
+
+        t.end();
+      });
+    });
+});
+
 test('pkg with local import', function (t) {
   chdirToPkg(['path', 'to', 'pkg-with-local-import']);
 
