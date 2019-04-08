@@ -4,9 +4,9 @@ notifications:
   email: false
 language: node_js
 node_js:
+  - "10"
   - "8"
   - "6"
-  - "4"
 env:
   - GO_VERSION=1.9.5
   - GO_VERSION=1.10.1

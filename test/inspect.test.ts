@@ -1,18 +1,18 @@
-var test = require('tap').test;
-var path = require('path');
+const test = require('tap').test;
+import * as path from 'path';
 
-var plugin = require('../lib');
-var subProcess = require('../lib/sub-process');
+import * as plugin from '../lib';
+import * as subProcess from '../lib/sub-process';
 
-test('happy inspect', function (t) {
+test('happy inspect', (t) => {
   chdirToPkg(['path', 'to', 'pkg']);
 
   return plugin.inspect('.', 'Gopkg.lock')
-    .then(function (result) {
-      var plugin = result.plugin;
-      var pkg = result.package;
+    .then((result) => {
+      const plugin = result.plugin;
+      const pkg = result.package;
 
-      t.test('plugin', function (t) {
+      t.test('plugin', (t) => {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
@@ -20,7 +20,7 @@ test('happy inspect', function (t) {
         t.end();
       });
 
-      t.test('root pkg', function (t) {
+      t.test('root pkg', (t) => {
         t.match(pkg, {
           name: 'path/to/pkg',
           version: '',
@@ -29,8 +29,8 @@ test('happy inspect', function (t) {
         t.end();
       });
 
-      t.test('dependencies', function (t) {
-        var deps = pkg.dependencies;
+      t.test('dependencies', (t) => {
+        const deps = pkg.dependencies!;
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
@@ -64,22 +64,22 @@ test('happy inspect', function (t) {
     });
 });
 
-test('pkg with local import', function (t) {
+test('pkg with local import', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-local-import']);
 
   return plugin.inspect('.', 'Gopkg.lock')
-    .then(function (result) {
-      var plugin = result.plugin;
-      var pkg = result.package;
+    .then((result) => {
+      const plugin = result.plugin;
+      const pkg = result.package;
 
-      t.test('plugin', function (t) {
+      t.test('plugin', (t) => {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
         t.end();
       });
 
-      t.test('dependencies', function (t) {
+      t.test('dependencies', (t) => {
         t.match(pkg, {
           version: '',
           dependencies: {
@@ -104,22 +104,22 @@ test('pkg with local import', function (t) {
     });
 });
 
-test('pkg with internal subpkg', function (t) {
+test('pkg with internal subpkg', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-internal-subpkg']);
 
   return plugin.inspect('.', 'Gopkg.lock')
-    .then(function (result) {
-      var plugin = result.plugin;
-      var pkg = result.package;
+    .then((result) => {
+      const plugin = result.plugin;
+      const pkg = result.package;
 
-      t.test('plugin', function (t) {
+      t.test('plugin', (t) => {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
         t.end();
       });
 
-      t.test('dependencies', function (t) {
+      t.test('dependencies', (t) => {
         t.match(pkg, {
           version: '',
           dependencies: {
@@ -144,15 +144,15 @@ test('pkg with internal subpkg', function (t) {
     });
 });
 
-test('multi-root project', function (t) {
+test('multi-root project', (t) => {
   chdirToPkg(['path', 'to', 'multiroot-pkg']);
 
   return plugin.inspect('.', 'Gopkg.lock')
-    .then(function (result) {
-      var plugin = result.plugin;
-      var pkg = result.package;
+    .then((result) => {
+      const plugin = result.plugin;
+      const pkg = result.package;
 
-      t.test('plugin', function (t) {
+      t.test('plugin', (t) => {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
@@ -160,7 +160,7 @@ test('multi-root project', function (t) {
         t.end();
       });
 
-      t.test('root pkg', function (t) {
+      t.test('root pkg', (t) => {
         t.match(pkg, {
           name: 'path/to/multiroot-pkg',
           version: '',
@@ -169,8 +169,8 @@ test('multi-root project', function (t) {
         t.end();
       });
 
-      t.test('dependencies', function (t) {
-        var deps = pkg.dependencies;
+      t.test('dependencies', (t) => {
+        const deps = pkg.dependencies!;
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
@@ -203,7 +203,7 @@ test('multi-root project', function (t) {
       });
 
     }).then(function () {
-      var goResolveTool =
+      const goResolveTool =
         path.join(__dirname, '..', 'gosrc', 'resolve-deps.go');
       return subProcess.execute('go', [
         'run',
@@ -211,9 +211,9 @@ test('multi-root project', function (t) {
         '-list',
         '-ignoredPkgs=path/to/multiroot-pkg/shouldskip/ignored_pkg,' +
           'path/to/multiroot-pkg/shouldskip/ignored_pkg_wildcard/*',
-      ]).then(function (result) {
-        t.test('resolved deps', function (t) {
-          var list = JSON.parse(result);
+      ]).then((result) => {
+        t.test('resolved deps', (t) => {
+          const list = JSON.parse(result);
           t.same(list.sort(), [
             '.',
             'gitpub.com/food/salad',
@@ -231,15 +231,15 @@ test('multi-root project', function (t) {
     });
 });
 
-test('multi-root project without code at root', function (t) {
+test('multi-root project without code at root', (t) => {
   chdirToPkg(['path', 'to', 'multiroot-pkg-without-root']);
 
   return plugin.inspect('.', 'Gopkg.lock')
-    .then(function (result) {
-      var plugin = result.plugin;
-      var pkg = result.package;
+    .then((result) => {
+      const plugin = result.plugin;
+      const pkg = result.package;
 
-      t.test('plugin', function (t) {
+      t.test('plugin', (t) => {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
@@ -247,7 +247,7 @@ test('multi-root project without code at root', function (t) {
         t.end();
       });
 
-      t.test('root pkg', function (t) {
+      t.test('root pkg', (t) => {
         t.match(pkg, {
           name: 'path/to/multiroot-pkg-without-root',
           version: '',
@@ -256,8 +256,8 @@ test('multi-root project without code at root', function (t) {
         t.end();
       });
 
-      t.test('dependencies', function (t) {
-        var deps = pkg.dependencies;
+      t.test('dependencies', (t) => {
+        const deps = pkg.dependencies!;
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
@@ -295,15 +295,15 @@ test('multi-root project without code at root', function (t) {
       });
 
     }).then(function () {
-      var goResolveTool =
+      const goResolveTool =
         path.join(__dirname, '..', 'gosrc', 'resolve-deps.go');
       return subProcess.execute('go', [
         'run',
         goResolveTool,
         '-list',
-      ]).then(function (result) {
-        t.test('resolved deps', function (t) {
-          var list = JSON.parse(result);
+      ]).then((result) => {
+        t.test('resolved deps', (t) => {
+          const list = JSON.parse(result);
           t.same(list.sort(), [
             '.',
             'gitpub.com/food/salad',
@@ -321,15 +321,15 @@ test('multi-root project without code at root', function (t) {
     });
 });
 
-test('no Go code', function (t) {
+test('no Go code', (t) => {
   chdirToPkg(['path', 'to', 'empty']);
 
   return plugin.inspect('.', 'Gopkg.lock')
-    .then(function (result) {
-      var plugin = result.plugin;
-      var pkg = result.package;
+    .then((result) => {
+      const plugin = result.plugin;
+      const pkg = result.package;
 
-      t.test('plugin', function (t) {
+      t.test('plugin', (t) => {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
@@ -337,7 +337,7 @@ test('no Go code', function (t) {
         t.end();
       });
 
-      t.test('root pkg', function (t) {
+      t.test('root pkg', (t) => {
         t.same(pkg, {
           name: 'path/to/empty',
           dependencies: {},
@@ -350,15 +350,15 @@ test('no Go code', function (t) {
     );
 });
 
-test('with external ignores', function (t) {
+test('with external ignores', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-ignores']);
 
   return plugin.inspect('.', 'Gopkg.lock')
-    .then(function (result) {
-      var plugin = result.plugin;
-      var pkg = result.package;
+    .then((result) => {
+      const plugin = result.plugin;
+      const pkg = result.package;
 
-      t.test('plugin', function (t) {
+      t.test('plugin', (t) => {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
@@ -366,7 +366,7 @@ test('with external ignores', function (t) {
         t.end();
       });
 
-      t.test('root pkg', function (t) {
+      t.test('root pkg', (t) => {
         t.match(pkg, {
           name: 'path/to/pkg-with-ignores',
           version: '',
@@ -375,8 +375,8 @@ test('with external ignores', function (t) {
         t.end();
       });
 
-      t.test('dependencies', function (t) {
-        var deps = pkg.dependencies;
+      t.test('dependencies', (t) => {
+        const deps = pkg.dependencies!;
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
@@ -415,15 +415,15 @@ test('with external ignores', function (t) {
     });
 });
 
-test('with external ignores (govendor)', function (t) {
+test('with external ignores (govendor)', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-ignores-govendor']);
 
   return plugin.inspect('.', 'vendor/vendor.json')
-    .then(function (result) {
-      var plugin = result.plugin;
-      var pkg = result.package;
+    .then((result) => {
+      const plugin = result.plugin;
+      const pkg = result.package;
 
-      t.test('plugin', function (t) {
+      t.test('plugin', (t) => {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
@@ -431,7 +431,7 @@ test('with external ignores (govendor)', function (t) {
         t.end();
       });
 
-      t.test('root pkg', function (t) {
+      t.test('root pkg', (t) => {
         t.match(pkg, {
           name: 'path/to/pkg-with-ignores-govendor',
           version: '',
@@ -440,14 +440,14 @@ test('with external ignores (govendor)', function (t) {
         t.end();
       });
 
-      t.test('dependencies', function (t) {
-        var deps = pkg.dependencies;
+      t.test('dependencies', (t) => {
+        const deps = pkg.dependencies!;
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
           version: 'v1.3.7',
         }, 'salad is a dep');
 
-        var saladDeps = deps['gitpub.com/food/salad'].dependencies;
+        const saladDeps = deps['gitpub.com/food/salad'].dependencies!;
         t.type(
           deps['gitpub.com/nature/vegetables'], 'undefined',
           'vegetables pkg is ignored');
@@ -473,13 +473,13 @@ test('with external ignores (govendor)', function (t) {
 });
 
 
-test('missing vendor/ folder', function (t) {
+test('missing vendor/ folder', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-missing-vendor-folder']);
 
   return plugin.inspect('.', 'Gopkg.lock')
     .then(function () {
       t.fail('should have failed');
-    }).catch(function (error) {
+    }).catch((error) => {
       t.equal(
         error.message,
         'Unresolved packages:\n' +
@@ -489,13 +489,13 @@ test('missing vendor/ folder', function (t) {
     });
 });
 
-test('missing some packages in vendor/ folder (dep)', function (t) {
+test('missing some packages in vendor/ folder (dep)', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-partial-vendor-folder']);
 
   return plugin.inspect('.', 'Gopkg.lock')
     .then(function () {
       t.fail('should have failed');
-    }).catch(function (error) {
+    }).catch((error) => {
       t.equal(
         error.message,
         'Unresolved packages:\n' +
@@ -505,13 +505,13 @@ test('missing some packages in vendor/ folder (dep)', function (t) {
     });
 });
 
-test('missing some packages in vendor/ folder (govendor)', function (t) {
+test('missing some packages in vendor/ folder (govendor)', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-partial-vendor-folder']);
 
   return plugin.inspect('.', 'vendor/vendor.json')
     .then(function () {
       t.fail('should have failed');
-    }).catch(function (error) {
+    }).catch((error) => {
       t.equal(
         error.message,
         'Unresolved packages:\n' +
@@ -521,19 +521,19 @@ test('missing some packages in vendor/ folder (govendor)', function (t) {
     });
 });
 
-test('cyclic import', function (t) {
+test('cyclic import', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-cycle']);
 
   return plugin.inspect('.', 'vendor/vendor.json')
     .then(function () {
       t.fail('should have failed');
-    }).catch(function (error) {
+    }).catch((error) => {
       t.match(error.message, 'import cycle');
       t.pass();
     });
 });
 
-test('corrupt Gopkg.lock', function (t) {
+test('corrupt Gopkg.lock', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-corrupt-gopkg-lock']);
 
   return plugin.inspect('.', 'Gopkg.lock')
@@ -544,7 +544,7 @@ test('corrupt Gopkg.lock', function (t) {
     });
 });
 
-test('corrupt Gopkg.toml', function (t) {
+test('corrupt Gopkg.toml', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-corrupt-gopkg-toml']);
 
   return plugin.inspect('.', 'Gopkg.lock')
@@ -555,7 +555,7 @@ test('corrupt Gopkg.toml', function (t) {
     });
 });
 
-test('missing Gopkg.toml', function (t) {
+test('missing Gopkg.toml', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-missing-gopkg-toml']);
 
   return plugin.inspect('.', 'Gopkg.lock')
@@ -566,7 +566,7 @@ test('missing Gopkg.toml', function (t) {
     });
 });
 
-test('GOPATH not defined', function (t) {
+test('GOPATH not defined', (t) => {
   chdirToPkg(['path', 'to', 'pkg']);
   delete process.env['GOPATH'];
 
@@ -578,15 +578,15 @@ test('GOPATH not defined', function (t) {
     });
 });
 
-test('pkg without external deps', function (t) {
+test('pkg without external deps', (t) => {
   chdirToPkg(['path', 'to', 'pkg-without-deps']);
 
   return plugin.inspect('.', 'Gopkg.lock')
-    .then(function (result) {
-      var plugin = result.plugin;
-      var pkg = result.package;
+    .then((result) => {
+      const plugin = result.plugin;
+      const pkg = result.package;
 
-      t.test('plugin', function (t) {
+      t.test('plugin', (t) => {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
@@ -594,7 +594,7 @@ test('pkg without external deps', function (t) {
         t.end();
       });
 
-      t.test('pkg', function (t) {
+      t.test('pkg', (t) => {
         t.same(pkg, {
           name: 'path/to/pkg-without-deps',
           version: '',
@@ -606,15 +606,15 @@ test('pkg without external deps', function (t) {
     });
 });
 
-test('happy inspect govendor', function (t) {
+test('happy inspect govendor', (t) => {
   chdirToPkg(['path', 'to', 'pkg']);
 
   return plugin.inspect('.', 'vendor/vendor.json')
-    .then(function (result) {
-      var plugin = result.plugin;
-      var pkg = result.package;
+    .then((result) => {
+      const plugin = result.plugin;
+      const pkg = result.package;
 
-      t.test('plugin', function (t) {
+      t.test('plugin', (t) => {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
@@ -622,7 +622,7 @@ test('happy inspect govendor', function (t) {
         t.end();
       });
 
-      t.test('root pkg', function (t) {
+      t.test('root pkg', (t) => {
         t.match(pkg, {
           name: 'path/to/pkg',
           version: '',
@@ -631,8 +631,8 @@ test('happy inspect govendor', function (t) {
         t.end();
       });
 
-      t.test('dependencies', function (t) {
-        var deps = pkg.dependencies;
+      t.test('dependencies', (t) => {
+        const deps = pkg.dependencies!;
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
@@ -666,15 +666,15 @@ test('happy inspect govendor', function (t) {
     });
 });
 
-test('inspect govendor with alternate case', function (t) {
+test('inspect govendor with alternate case', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-alternate-govendor']);
 
   return plugin.inspect('.', 'vendor/vendor.json')
-    .then(function (result) {
-      var plugin = result.plugin;
-      var pkg = result.package;
+    .then((result) => {
+      const plugin = result.plugin;
+      const pkg = result.package;
 
-      t.test('plugin', function (t) {
+      t.test('plugin', (t) => {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
@@ -682,7 +682,7 @@ test('inspect govendor with alternate case', function (t) {
         t.end();
       });
 
-      t.test('root pkg', function (t) {
+      t.test('root pkg', (t) => {
         t.match(pkg, {
           name: 'path/to/pkg-with-alternate-govendor',
           version: '',
@@ -696,8 +696,8 @@ test('inspect govendor with alternate case', function (t) {
         t.end();
       });
 
-      t.test('dependencies', function (t) {
-        var deps = pkg.dependencies;
+      t.test('dependencies', (t) => {
+        const deps = pkg.dependencies!;
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
@@ -731,7 +731,7 @@ test('inspect govendor with alternate case', function (t) {
     });
 });
 
-test('corrupt vendor.json', function (t) {
+test('corrupt vendor.json', (t) => {
   chdirToPkg(['path', 'to', 'pkg-with-corrupt-govendor-json']);
 
   return plugin.inspect('.', 'vendor/vendor.json')

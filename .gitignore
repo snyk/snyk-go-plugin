@@ -13,3 +13,6 @@
 /test/system/fixtures/gopath/src/github.com/kardianos/govendor
 /test/system/fixtures/gopath/src/github.com/prometheus/prometheus
 /test/system/fixtures/gopath/src/**/vendor/*/
+
+dist/
+package-lock.json
