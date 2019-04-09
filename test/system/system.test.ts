@@ -15,7 +15,7 @@ test('install govendor', {timeout: 120 * 1000}, function () {
   return getGovendor();
 });
 
-test('proj imports k8s client', {timeout: 300 * 1000}, function (t) {
+test('proj imports k8s client', {timeout: 300 * 1000}, (t) => {
   return testPkg(t,
     ['with-k8s-client'],
     'Gopkg.lock',
@@ -23,7 +23,7 @@ test('proj imports k8s client', {timeout: 300 * 1000}, function (t) {
   );
 });
 
-test('prometheus 1.8', function (t) {
+test('prometheus 1.8', (t) => {
   chdirToPkg(['github.com', 'prometheus']);
   return clonePkg(
     'https://github.com/prometheus/prometheus',
@@ -47,7 +47,7 @@ function testPkg(t, pkgPathArray, targetFile, expectedPkgsListFile) {
   }).then(function () {
 
     return plugin.inspect('.', targetFile)
-      .then(function (result) {
+      .then((result) => {
         var pkg = result.package;
 
         t.ok(JSON.stringify(pkg).length < 2 * 1024 * 1024, 'result below 2MB');
@@ -57,7 +57,7 @@ function testPkg(t, pkgPathArray, targetFile, expectedPkgsListFile) {
           'list of packages is as expected'
         );
       });
-  }).catch(function (err) {
+  }).catch((err) => {
     console.log(err.stack);
     t.bailout(err);
   });
@@ -73,10 +73,10 @@ function pkgsList(pkgTree) {
 
   var deps = pkgTree.dependencies;
 
-  deps && Object.keys(deps).forEach(function (k) {
+  deps && Object.keys(deps).forEach((k) => {
     var childList = pkgsList(deps[k]);
 
-    childList.forEach(function (d) {
+    childList.forEach((d) => {
       pkgsMap[d] = true;
     });
   });

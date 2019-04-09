@@ -1,33 +1,31 @@
-var tap = require('tap');
-var test = tap.test;
-var path = require('path');
+import * as tap from 'tap';
+const test = tap.test;
+import * as path from 'path';
 
-var subProcess = require('../lib/sub-process');
+import * as subProcess from '../lib/sub-process';
 
-test('with nested GOPATH/src/proj symlink-ing to ../..', function (t) {
-  var rootFolder = path.resolve(
+test('with nested GOPATH/src/proj symlink-ing to ../..', (t) => {
+  const rootFolder = path.resolve(
     __dirname, 'fixtures', 'proj-with-nested-gopath-and-symlink');
-  var gopath = path.resolve(rootFolder, 'gopath');
-  var cwd = path.join(gopath, 'src', 'proj');
+  const gopath = path.resolve(rootFolder, 'gopath');
+  const cwd = path.join(gopath, 'src', 'proj');
 
-  var manualScriptPath = path.resolve(__dirname, 'manual.js');
+  const manualScriptPath = path.resolve(__dirname, 'manual.ts');
 
   // NOTE: use spawn(shell=true) for this test,
   //  because node's process.chdir() resolved symlinks,
   //  such that process.cwd() no-longer contains the /gopath/ part
   return subProcess.execute(
-    `cd ${cwd} ; export GOPATH=${gopath} ; node ${manualScriptPath} Gopkg.lock`,
-    [],
-    {
-      shell: true,
-    })
-    .then(function (result) {
-      var resultJson = JSON.parse(result);
+    `cd ${cwd} ; export GOPATH=${gopath} ; ts-node ${manualScriptPath} Gopkg.lock`,
+    [])
+    .then((result) => {
+      console.log(result);
+      const resultJson = JSON.parse(result);
 
-      var plugin = resultJson.plugin;
-      var pkg = resultJson.package;
+      const plugin = resultJson.plugin;
+      const pkg = resultJson.package;
 
-      t.test('plugin', function (t) {
+      t.test('plugin', (t) => {
         t.ok(plugin, 'plugin');
         t.equal(plugin.name, 'snyk-go-plugin', 'name');
         t.match(plugin.runtime, /^go\d+/, 'engine');
@@ -35,7 +33,7 @@ test('with nested GOPATH/src/proj symlink-ing to ../..', function (t) {
         t.end();
       });
 
-      t.test('root pkg', function (t) {
+      t.test('root pkg', (t) => {
         t.match(pkg, {
           name: 'proj',
           version: '',
@@ -44,8 +42,8 @@ test('with nested GOPATH/src/proj symlink-ing to ../..', function (t) {
         t.end();
       });
 
-      t.test('dependencies', function (t) {
-        var deps = pkg.dependencies;
+      t.test('dependencies', (t) => {
+        const deps = pkg.dependencies;
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',

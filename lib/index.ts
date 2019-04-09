@@ -1,25 +1,34 @@
-var fs = require('fs');
-var path = require('path');
-var toml = require('toml');
-var graphlib = require('graphlib');
-var tmp = require('tmp');
+import * as fs from 'fs';
+import * as path from 'path';
+import * as toml from 'toml';
+import * as graphlib from 'graphlib';
+import * as tmp from 'tmp';
 
-var subProcess = require('./sub-process');
+import * as subProcess from './sub-process';
 
-module.exports = {
-  inspect: inspect,
-};
+const VIRTUAL_ROOT_NODE_ID = '.';
 
-var VIRTUAL_ROOT_NODE_ID = '.';
+export interface DepDict {
+  [name: string]: DepTree;
+}
 
-function inspect(root, targetFile) {
+export interface DepTree {
+  name: string;
+  version?: string;
+  dependencies?: DepDict;
+  packageFormatVersion?: string;
 
+  _counts?: any;
+  _isProjSubpkg?: boolean;
+}
+
+export function inspect(root, targetFile) {
 
   return Promise.all([
     getMetaData(root, targetFile),
     getDependencies(root, targetFile),
   ])
-    .then(function (result) {
+    .then((result) => {
       return {
         plugin: result[0],
         package: result[1],
@@ -29,16 +38,16 @@ function inspect(root, targetFile) {
 
 function getMetaData(root, targetFile) {
   return subProcess.execute('go', ['version'], {cwd: root})
-    .then(function (output) {
-      var runtime;
-      var versionMatch = /(go\d+\.?\d+?\.?\d*)/.exec(output);
+    .then((output) => {
+      let runtime;
+      const versionMatch = /(go\d+\.?\d+?\.?\d*)/.exec(output);
       if (versionMatch) {
         runtime = versionMatch[0];
       }
 
       return {
         name: 'snyk-go-plugin',
-        runtime: runtime,
+        runtime,
         targetFile: pathToPosix(targetFile),
       };
     });
@@ -51,8 +60,8 @@ function getMetaData(root, targetFile) {
 // understand) adding a full folder as an asset, and this is why we're adding
 // the required files this way. In addition, Zeit doesn't support
 // path.resolve(), and this is why I'm using path.join()
-function createAssets(){
-  var assets = [];
+function createAssets() {
+  const assets: string[] = [];
   assets.push(path.join(__dirname, '../gosrc/resolve-deps.go'));
   assets.push(path.join(__dirname, '../gosrc/resolver/pkg.go'));
   assets.push(path.join(__dirname, '../gosrc/resolver/resolver.go'));
@@ -63,7 +72,7 @@ function createAssets(){
 }
 
 function writeFile(writeFilePath, contents) {
-  var dirPath = path.dirname(writeFilePath);
+  const dirPath = path.dirname(writeFilePath);
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath);
   }
@@ -71,7 +80,7 @@ function writeFile(writeFilePath, contents) {
 }
 
 function getFilePathRelativeToDumpDir(filePath) {
-  var pathParts = filePath.split('\\gosrc\\');
+  let pathParts = filePath.split('\\gosrc\\');
 
   // Windows
   if (pathParts.length > 1) {
@@ -84,49 +93,48 @@ function getFilePathRelativeToDumpDir(filePath) {
 }
 
 function dumpAllResolveDepsFilesInTempDir(tempDirName) {
-  createAssets().forEach(function(currentReadFilePath) {
+  createAssets().forEach((currentReadFilePath) => {
     if (!fs.existsSync(currentReadFilePath)) {
       throw new Error('The file `' + currentReadFilePath + '` is missing');
     }
 
-    var relFilePathToDumpDir =
+    const relFilePathToDumpDir =
       getFilePathRelativeToDumpDir(currentReadFilePath);
 
-    var writeFilePath = path.join(tempDirName, relFilePathToDumpDir);
+    const writeFilePath = path.join(tempDirName, relFilePathToDumpDir);
 
-    var contents = fs.readFileSync(currentReadFilePath);
+    const contents = fs.readFileSync(currentReadFilePath);
     writeFile(writeFilePath, contents);
   });
 }
 
 function getDependencies(root, targetFile) {
-  var config;
-  var tempDirObj;
-  return new Promise(function (resolve) {
+  let config;
+  let tempDirObj;
+  return new Promise((resolve) => {
     config = parseConfig(root, targetFile);
     resolve(config);
-  }).then(function () {
+  }).then(() => {
     tempDirObj = tmp.dirSync({
       unsafeCleanup: true,
     });
 
     dumpAllResolveDepsFilesInTempDir(tempDirObj.name);
 
-    var goResolveTool =
+    const goResolveTool =
       path.join(tempDirObj.name, 'resolve-deps.go');
-    var ignorePkgsParam;
+    let ignorePkgsParam;
     if (config.ignoredPkgs && config.ignoredPkgs.length > 0) {
       ignorePkgsParam = '-ignoredPkgs=' + config.ignoredPkgs.join(',');
     }
     return subProcess.execute(
       'go',
       ['run', goResolveTool, ignorePkgsParam],
-      {cwd: root}
+      {cwd: root},
     );
-  }).then(function (graph) {
+  }).then((graphStr) => {
     tempDirObj.removeCallback();
-    graph = JSON.parse(graph);
-    graph = graphlib.json.read(graph);
+    const graph = graphlib.json.read(JSON.parse(graphStr));
 
     if (!graphlib.alg.isAcyclic(graph)) {
       throw new Error(
@@ -137,33 +145,32 @@ function getDependencies(root, targetFile) {
     // i.e. pkgs with no local dependants.
     // To create a tree, we add edges from a "virutal root",
     // to these source nodes.
-    var VIRTUAL_ROOT_NODE_ID = '.';
-    var root = graph.node(VIRTUAL_ROOT_NODE_ID);
-    if (!root) {
+    const rootNode = graph.node(VIRTUAL_ROOT_NODE_ID);
+    if (!rootNode) {
       throw new Error('Failed parsing dependency graph');
     }
 
-    graph.sources().forEach(function (nodeId) {
+    graph.sources().forEach((nodeId) => {
       if (nodeId !== VIRTUAL_ROOT_NODE_ID) {
         graph.setEdge(VIRTUAL_ROOT_NODE_ID, nodeId);
       }
     });
 
-    var projectRootPath = getProjectRootFromTargetFile(targetFile);
+    const projectRootPath = getProjectRootFromTargetFile(targetFile);
 
-    var pkgsTree = recursivelyBuildPkgTree(
-      graph, root, config.lockedVersions, projectRootPath, {});
+    const pkgsTree = recursivelyBuildPkgTree(
+      graph, rootNode, config.lockedVersions, projectRootPath, {});
     delete pkgsTree._counts;
 
     pkgsTree.packageFormatVersion = 'golang:0.0.1';
 
     return pkgsTree;
-  }).catch(function (error) {
+  }).catch((error) => {
     if (tempDirObj) {
       tempDirObj.removeCallback();
     }
     if (typeof error === 'string') {
-      var unresolvedOffset = error.indexOf('Unresolved packages:');
+      const unresolvedOffset = error.indexOf('Unresolved packages:');
       if (unresolvedOffset !== -1) {
         throw new Error(
           error.slice(unresolvedOffset) + '\n' +
@@ -176,18 +183,18 @@ function getDependencies(root, targetFile) {
   });
 }
 
-var PACKAGE_MANAGER_BY_TARGET = {
+const PACKAGE_MANAGER_BY_TARGET = {
   'Gopkg.lock': 'dep',
   'vendor.json': 'govendor',
 };
 
-var VENDOR_SYNC_CMD_BY_PKG_MANAGER = {
+const VENDOR_SYNC_CMD_BY_PKG_MANAGER = {
   dep: 'dep ensure',
   govendor: 'govendor sync',
 };
 
 function pkgManagerByTarget(targetFile) {
-  var fname = path.basename(targetFile);
+  const fname = path.basename(targetFile);
   return PACKAGE_MANAGER_BY_TARGET[fname];
 }
 
@@ -197,8 +204,8 @@ function syncCmdForTarget(targetFile) {
 }
 
 function getProjectRootFromTargetFile(targetFile) {
-  var resolved = path.resolve(targetFile);
-  var parts = resolved.split(path.sep);
+  const resolved = path.resolve(targetFile);
+  const parts = resolved.split(path.sep);
 
   if (parts[parts.length - 1] === 'Gopkg.lock') {
     return path.dirname(resolved);
@@ -218,14 +225,14 @@ function recursivelyBuildPkgTree(
   node,
   lockedVersions,
   projectRootPath,
-  counts
-) {
+  counts,
+): DepTree {
 
-  var isRoot = (node.Name === VIRTUAL_ROOT_NODE_ID);
+  const isRoot = (node.Name === VIRTUAL_ROOT_NODE_ID);
 
-  var isProjSubpkg = isProjSubpackage(node.Dir, projectRootPath);
+  const isProjSubpkg = isProjSubpackage(node.Dir, projectRootPath);
 
-  var pkg = {
+  const pkg: DepTree = {
     name: (isRoot ? node.FullImportPath : node.Name),
     dependencies: {},
   };
@@ -244,8 +251,8 @@ function recursivelyBuildPkgTree(
 
   pkg._counts = {};
 
-  var children = graph.successors(node.Name).sort();
-  children.forEach(function (depName) {
+  const children = graph.successors(node.Name).sort();
+  children.forEach((depName) => {
 
     // We drop branches of overly common pkgs:
     // this looses some paths, but avoids explosion in result size
@@ -253,31 +260,31 @@ function recursivelyBuildPkgTree(
       return;
     }
 
-    var dep = graph.node(depName);
+    const dep = graph.node(depName);
 
-    var child = recursivelyBuildPkgTree(
+    const child = recursivelyBuildPkgTree(
       graph,
       dep,
       lockedVersions,
       projectRootPath,
-      sumCounts(counts, pkg._counts)
+      sumCounts(counts, pkg._counts),
     );
 
     pkg._counts = sumCounts(pkg._counts, child._counts);
     delete child._counts;
 
     if (child._isProjSubpkg) {
-      Object.keys(child.dependencies).forEach(function (grandChildName) {
+      Object.keys(child.dependencies!).forEach((grandChildName) => {
         // don't merge grandchild if already a child,
         // because it was traversed with higher counts and may be more partial
-        if (!pkg.dependencies[grandChildName]) {
-          pkg.dependencies[grandChildName] = child.dependencies[grandChildName];
+        if (!pkg.dependencies![grandChildName]) {
+          pkg.dependencies![grandChildName] = child.dependencies![grandChildName];
         }
       });
     } else {
       // in case was already added via a grandchild
-      if (!pkg.dependencies[child.name]) {
-        pkg.dependencies[child.name] = child;
+      if (!pkg.dependencies![child.name]) {
+        pkg.dependencies![child.name] = child;
         pkg._counts[child.name] = (pkg._counts[child.name] || 0) + 1;
       }
     }
@@ -287,9 +294,9 @@ function recursivelyBuildPkgTree(
 }
 
 function sumCounts(a, b) {
-  var sum = shallowCopyMap(a);
+  const sum = shallowCopyMap(a);
 
-  for (var k in b) {
+  for (const k of Object.keys(b)) {
     sum[k] = (sum[k] || 0) + b[k];
   }
 
@@ -297,9 +304,9 @@ function sumCounts(a, b) {
 }
 
 function shallowCopyMap(m) {
-  var copy = {};
+  const copy = {};
 
-  for (var k in m) {
+  for (const k of Object.keys(m)) {
     copy[k] = m[k];
   }
 
@@ -311,7 +318,7 @@ function isProjSubpackage(pkgPath, projectRootPath) {
     return true;
   }
 
-  var root = projectRootPath;
+  let root = projectRootPath;
   root =
    (root[root.length - 1] === path.sep) ? root : (root + path.sep);
 
@@ -319,7 +326,7 @@ function isProjSubpackage(pkgPath, projectRootPath) {
     return false;
   }
 
-  var pkgRelativePath = pkgPath.slice(root.length);
+  const pkgRelativePath = pkgPath.slice(root.length);
   if (pkgRelativePath.split(path.sep).indexOf('vendor') !== -1) {
     return false;
   }
@@ -328,16 +335,15 @@ function isProjSubpackage(pkgPath, projectRootPath) {
 }
 
 function parseConfig(root, targetFile) {
-  var pkgManager = pkgManagerByTarget(targetFile);
-  var config = {};
+  const pkgManager = pkgManagerByTarget(targetFile);
+  let config = {
+    ignoredPkgs: [] as string[],
+    lockedVersions: {},
+  };
   switch (pkgManager) {
     case 'dep': {
-      config = {
-        ignoredPkgs: [],
-        lockedVersions: {},
-      };
       config.lockedVersions = parseDepLock(root, targetFile);
-      var manifest = parseDepManifest(root, targetFile);
+      const manifest = parseDepManifest(root, targetFile);
       config.ignoredPkgs = manifest.ignored;
       break;
     }
@@ -355,28 +361,30 @@ function parseConfig(root, targetFile) {
 
 function parseDepLock(root, targetFile) {
   try {
-    var lock = fs.readFileSync(path.join(root, targetFile));
+    const lock = fs.readFileSync(path.join(root, targetFile));
 
-    var lockJson = toml.parse(String(lock));
+    const lockJson = toml.parse(String(lock));
 
-    var deps = {};
-    lockJson.projects && lockJson.projects.forEach(function (proj) {
-      var version = proj.version || ('#' + proj.revision);
+    const deps = {};
+    if (lockJson.projects) {
+      lockJson.projects.forEach((proj) => {
+        const version = proj.version || ('#' + proj.revision);
 
-      proj.packages.forEach(function (subpackageName) {
-        var name =
-          (subpackageName === '.' ?
-            proj.name :
-            proj.name + '/' + subpackageName);
+        proj.packages.forEach((subpackageName) => {
+          const name =
+            (subpackageName === '.' ?
+              proj.name :
+              proj.name + '/' + subpackageName);
 
-        var dep = {
-          name: name,
-          version: version,
-        };
+          const dep = {
+            name,
+            version,
+          };
 
-        deps[dep.name] = dep;
+          deps[dep.name] = dep;
+        });
       });
-    });
+    }
 
     return deps;
   } catch (e) {
@@ -385,13 +393,13 @@ function parseDepLock(root, targetFile) {
 }
 
 function parseDepManifest(root, targetFile) {
-  var manifestDir = path.dirname(path.join(root, targetFile));
-  var manifestPath = path.resolve(path.join(manifestDir, 'Gopkg.toml'));
+  const manifestDir = path.dirname(path.join(root, targetFile));
+  const manifestPath = path.resolve(path.join(manifestDir, 'Gopkg.toml'));
 
   try {
-    var manifestToml = fs.readFileSync(manifestPath);
+    const manifestToml = fs.readFileSync(manifestPath);
 
-    var manifestJson = toml.parse(String(manifestToml)) || {};
+    const manifestJson = toml.parse(String(manifestToml)) || {};
 
     manifestJson.ignored = manifestJson.ignored || [];
 
@@ -403,33 +411,35 @@ function parseDepManifest(root, targetFile) {
 
 // TODO: branch, old Version can be a tag too?
 function parseGovendorJson(root, targetFile) {
-  var config = {
-    ignoredPkgs: [],
+  const config = {
+    ignoredPkgs: [] as string[],
     lockedVersions: {},
   };
   try {
-    var jsonStr = fs.readFileSync(path.join(root, targetFile));
-    var gvJson = JSON.parse(jsonStr);
+    const jsonStr = fs.readFileSync(path.join(root, targetFile), 'utf8');
+    const gvJson = JSON.parse(jsonStr);
 
-    var packages = gvJson.package || gvJson.Package;
-    packages && packages.forEach(function (pkg) {
-      var revision = pkg.revision || pkg.Revision || pkg.version || pkg.Version;
+    const packages = gvJson.package || gvJson.Package;
+    if (packages) {
+      packages.forEach((pkg) => {
+        const revision = pkg.revision || pkg.Revision || pkg.version || pkg.Version;
 
-      var version = pkg.versionExact || ('#' + revision);
+        const version = pkg.versionExact || ('#' + revision);
 
-      var dep = {
-        name: pkg.path,
-        version: version,
-      };
+        const dep = {
+          name: pkg.path,
+          version,
+        };
 
-      config.lockedVersions[dep.name] = dep;
-    });
+        config.lockedVersions[dep.name] = dep;
+      });
+    }
 
-    var ignores = gvJson.ignore || '';
-    ignores.split(/\s/).filter(function (s) {
+    const ignores = gvJson.ignore || '';
+    ignores.split(/\s/).filter((s) => {
       // otherwise it's a build-tag rather than a pacakge
       return s.indexOf('/') !== -1;
-    }).forEach(function (pkgName) {
+    }).forEach((pkgName) => {
       pkgName = pkgName.replace(/\/+$/, ''); // remove trailing /
       config.ignoredPkgs.push(pkgName);
       config.ignoredPkgs.push(pkgName + '/*');
@@ -442,6 +452,6 @@ function parseGovendorJson(root, targetFile) {
 }
 
 function pathToPosix(fpath) {
-  var parts = fpath.split(path.sep);
+  const parts = fpath.split(path.sep);
   return parts.join(path.posix.sep);
 }
