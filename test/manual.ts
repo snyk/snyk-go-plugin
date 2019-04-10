@@ -1,4 +1,5 @@
 import * as plugin from '../lib';
+import * as path from 'path';
 
 function main() {
   var targetFile = process.argv[2];

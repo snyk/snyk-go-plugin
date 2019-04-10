@@ -16,10 +16,9 @@ test('with nested GOPATH/src/proj symlink-ing to ../..', (t) => {
   //  because node's process.chdir() resolved symlinks,
   //  such that process.cwd() no-longer contains the /gopath/ part
   return subProcess.execute(
-    `cd ${cwd} ; export GOPATH=${gopath} ; ts-node ${manualScriptPath} Gopkg.lock`,
+    `cd '${cwd}' ; export GOPATH=${gopath} ; ${__dirname}/../node_modules/.bin/ts-node ${manualScriptPath} Gopkg.lock`,
     [])
     .then((result) => {
-      console.log(result);
       const resultJson = JSON.parse(result);
 
       const plugin = resultJson.plugin;
@@ -74,5 +73,6 @@ test('with nested GOPATH/src/proj symlink-ing to ../..', (t) => {
 
         t.end();
       });
-    });
+    })
+    .catch(t.threw);
 });
