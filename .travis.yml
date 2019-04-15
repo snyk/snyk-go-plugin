@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 sudo: false
 notifications:
   email: false
@@ -23,7 +23,7 @@ jobs:
       node_js: "8"
       script: skip
       after_success:
-        - npm run semantic-release
+        - npx semantic-release
 branches:
   only:
     - master

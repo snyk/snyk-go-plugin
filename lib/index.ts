@@ -1,10 +1,13 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as toml from 'toml';
 import * as graphlib from 'graphlib';
 import * as tmp from 'tmp';
 
 import * as subProcess from './sub-process';
+
+import { parseGoConfig, GoPackageManagerType } from 'snyk-go-parser';
 
 const VIRTUAL_ROOT_NODE_ID = '.';
 
@@ -22,53 +25,44 @@ export interface DepTree {
   _isProjSubpkg?: boolean;
 }
 
-export function inspect(root, targetFile) {
+interface CountDict {
+  [k: string]: number;
+}
 
-  return Promise.all([
+export async function inspect(root, targetFile) {
+
+  const result = await Promise.all([
     getMetaData(root, targetFile),
     getDependencies(root, targetFile),
-  ])
-    .then((result) => {
-      return {
-        plugin: result[0],
-        package: result[1],
-      };
-    });
+  ]);
+  return {
+    plugin: result[0],
+    package: result[1],
+  };
 }
 
-function getMetaData(root, targetFile) {
-  return subProcess.execute('go', ['version'], {cwd: root})
-    .then((output) => {
-      let runtime;
-      const versionMatch = /(go\d+\.?\d+?\.?\d*)/.exec(output);
-      if (versionMatch) {
-        runtime = versionMatch[0];
-      }
+async function getMetaData(root, targetFile) {
+  const output = await subProcess.execute('go', ['version'], {cwd: root});
+  const versionMatch = /(go\d+\.?\d+?\.?\d*)/.exec(output);
+  const runtime = (versionMatch) ? versionMatch[0] : undefined;
 
-      return {
-        name: 'snyk-go-plugin',
-        runtime,
-        targetFile: pathToPosix(targetFile),
-      };
-    });
+  return {
+    name: 'snyk-go-plugin',
+    runtime,
+    targetFile: pathToPosix(targetFile),
+  };
 }
 
-// Hack:
-// We're using Zeit assets feature in order to support Python and Go testing
-// within a binary release. By doing "path.join(__dirname, 'PATH'), Zeit adds
-// PATH file auto to the assets. Sadly, Zeit doesn't support (as far as I
-// understand) adding a full folder as an asset, and this is why we're adding
-// the required files this way. In addition, Zeit doesn't support
-// path.resolve(), and this is why I'm using path.join()
 function createAssets() {
-  const assets: string[] = [];
-  assets.push(path.join(__dirname, '../gosrc/resolve-deps.go'));
-  assets.push(path.join(__dirname, '../gosrc/resolver/pkg.go'));
-  assets.push(path.join(__dirname, '../gosrc/resolver/resolver.go'));
-  assets.push(path.join(__dirname, '../gosrc/resolver/dirwalk/dirwalk.go'));
-  assets.push(path.join(__dirname, '../gosrc/resolver/graph/graph.go'));
-
-  return assets;
+  // path.join calls have to be exactly in this format, needed by "pkg" to build a standalone Snyk CLI binary:
+  // https://www.npmjs.com/package/pkg#detecting-assets-in-source-code
+  return [
+    path.join(__dirname, '../gosrc/resolve-deps.go'),
+    path.join(__dirname, '../gosrc/resolver/pkg.go'),
+    path.join(__dirname, '../gosrc/resolver/resolver.go'),
+    path.join(__dirname, '../gosrc/resolver/dirwalk/dirwalk.go'),
+    path.join(__dirname, '../gosrc/resolver/graph/graph.go'),
+  ];
 }
 
 function writeFile(writeFilePath, contents) {
@@ -108,13 +102,10 @@ function dumpAllResolveDepsFilesInTempDir(tempDirName) {
   });
 }
 
-function getDependencies(root, targetFile) {
-  let config;
+async function getDependencies(root, targetFile) {
   let tempDirObj;
-  return new Promise((resolve) => {
-    config = parseConfig(root, targetFile);
-    resolve(config);
-  }).then(() => {
+  try {
+    const config = parseConfig(root, targetFile);
     tempDirObj = tmp.dirSync({
       unsafeCleanup: true,
     });
@@ -127,12 +118,11 @@ function getDependencies(root, targetFile) {
     if (config.ignoredPkgs && config.ignoredPkgs.length > 0) {
       ignorePkgsParam = '-ignoredPkgs=' + config.ignoredPkgs.join(',');
     }
-    return subProcess.execute(
+    const graphStr = await subProcess.execute(
       'go',
       ['run', goResolveTool, ignorePkgsParam],
       {cwd: root},
     );
-  }).then((graphStr) => {
     tempDirObj.removeCallback();
     const graph = graphlib.json.read(JSON.parse(graphStr));
 
@@ -165,7 +155,7 @@ function getDependencies(root, targetFile) {
     pkgsTree.packageFormatVersion = 'golang:0.0.1';
 
     return pkgsTree;
-  }).catch((error) => {
+  } catch (error) {
     if (tempDirObj) {
       tempDirObj.removeCallback();
     }
@@ -180,20 +170,20 @@ function getDependencies(root, targetFile) {
       throw new Error(error);
     }
     throw error;
-  });
+  }
 }
 
-const PACKAGE_MANAGER_BY_TARGET = {
-  'Gopkg.lock': 'dep',
+const PACKAGE_MANAGER_BY_TARGET: {[k: string]: GoPackageManagerType}  = {
+  'Gopkg.lock': 'golangdep',
   'vendor.json': 'govendor',
 };
 
-const VENDOR_SYNC_CMD_BY_PKG_MANAGER = {
-  dep: 'dep ensure',
+const VENDOR_SYNC_CMD_BY_PKG_MANAGER: {[k in GoPackageManagerType]: string} = {
+  golangdep: 'dep ensure',
   govendor: 'govendor sync',
 };
 
-function pkgManagerByTarget(targetFile) {
+function pkgManagerByTarget(targetFile): GoPackageManagerType {
   const fname = path.basename(targetFile);
   return PACKAGE_MANAGER_BY_TARGET[fname];
 }
@@ -293,24 +283,14 @@ function recursivelyBuildPkgTree(
   return pkg;
 }
 
-function sumCounts(a, b) {
-  const sum = shallowCopyMap(a);
+function sumCounts(a: CountDict, b: CountDict): CountDict {
+  const sum = {...a};
 
   for (const k of Object.keys(b)) {
     sum[k] = (sum[k] || 0) + b[k];
   }
 
   return sum;
-}
-
-function shallowCopyMap(m) {
-  const copy = {};
-
-  for (const k of Object.keys(m)) {
-    copy[k] = m[k];
-  }
-
-  return copy;
 }
 
 function isProjSubpackage(pkgPath, projectRootPath) {
@@ -334,121 +314,64 @@ function isProjSubpackage(pkgPath, projectRootPath) {
   return true;
 }
 
-function parseConfig(root, targetFile) {
+// TODO(kyegupov): the part below will move to snyk-go-parser
+
+interface LockedDep {
+  name: string;
+  version: string;
+}
+
+interface LockedDeps {
+  [dep: string]: LockedDep;
+}
+
+interface GoProjectConfig {
+  ignoredPkgs: string[];
+  lockedVersions: LockedDeps;
+}
+
+interface DepManifest {
+  ignored: string[];
+}
+
+function parseConfig(root, targetFile): GoProjectConfig {
   const pkgManager = pkgManagerByTarget(targetFile);
-  let config = {
-    ignoredPkgs: [] as string[],
-    lockedVersions: {},
-  };
   switch (pkgManager) {
-    case 'dep': {
-      config.lockedVersions = parseDepLock(root, targetFile);
-      const manifest = parseDepManifest(root, targetFile);
-      config.ignoredPkgs = manifest.ignored;
-      break;
+    case 'golangdep': {
+      try {
+        return parseGoConfig(pkgManager, getDepManifest(root, targetFile), getDepLock(root, targetFile));
+      } catch (e) {
+        throw (new Error('failed parsing manifest/lock files for Go dep: ' + e.message));
+      }
     }
     case 'govendor': {
-      config = parseGovendorJson(root, targetFile);
-      break;
+      try {
+        return parseGoConfig(pkgManager, getGovendorJson(root, targetFile), '');
+      } catch (e) {
+        throw (new Error('failed parsing config file for Go Vendor Tool: ' + e.message));
+      }
     }
     default: {
       throw new Error('Unsupported file: ' + targetFile);
     }
   }
 
-  return config;
 }
 
-function parseDepLock(root, targetFile) {
-  try {
-    const lock = fs.readFileSync(path.join(root, targetFile));
-
-    const lockJson = toml.parse(String(lock));
-
-    const deps = {};
-    if (lockJson.projects) {
-      lockJson.projects.forEach((proj) => {
-        const version = proj.version || ('#' + proj.revision);
-
-        proj.packages.forEach((subpackageName) => {
-          const name =
-            (subpackageName === '.' ?
-              proj.name :
-              proj.name + '/' + subpackageName);
-
-          const dep = {
-            name,
-            version,
-          };
-
-          deps[dep.name] = dep;
-        });
-      });
-    }
-
-    return deps;
-  } catch (e) {
-    throw (new Error('failed parsing ' + targetFile + ': ' + e.message));
-  }
+function getDepLock(root, targetFile): string {
+  return fs.readFileSync(path.join(root, targetFile), 'utf8');
 }
 
-function parseDepManifest(root, targetFile) {
+function getDepManifest(root, targetFile): string {
   const manifestDir = path.dirname(path.join(root, targetFile));
-  const manifestPath = path.resolve(path.join(manifestDir, 'Gopkg.toml'));
+  const manifestPath = path.join(manifestDir, 'Gopkg.toml');
 
-  try {
-    const manifestToml = fs.readFileSync(manifestPath);
-
-    const manifestJson = toml.parse(String(manifestToml)) || {};
-
-    manifestJson.ignored = manifestJson.ignored || [];
-
-    return manifestJson;
-  } catch (e) {
-    throw (new Error('failed parsing Gopkg.toml: ' + e.message));
-  }
+  return fs.readFileSync(manifestPath, 'utf8');
 }
 
 // TODO: branch, old Version can be a tag too?
-function parseGovendorJson(root, targetFile) {
-  const config = {
-    ignoredPkgs: [] as string[],
-    lockedVersions: {},
-  };
-  try {
-    const jsonStr = fs.readFileSync(path.join(root, targetFile), 'utf8');
-    const gvJson = JSON.parse(jsonStr);
-
-    const packages = gvJson.package || gvJson.Package;
-    if (packages) {
-      packages.forEach((pkg) => {
-        const revision = pkg.revision || pkg.Revision || pkg.version || pkg.Version;
-
-        const version = pkg.versionExact || ('#' + revision);
-
-        const dep = {
-          name: pkg.path,
-          version,
-        };
-
-        config.lockedVersions[dep.name] = dep;
-      });
-    }
-
-    const ignores = gvJson.ignore || '';
-    ignores.split(/\s/).filter((s) => {
-      // otherwise it's a build-tag rather than a pacakge
-      return s.indexOf('/') !== -1;
-    }).forEach((pkgName) => {
-      pkgName = pkgName.replace(/\/+$/, ''); // remove trailing /
-      config.ignoredPkgs.push(pkgName);
-      config.ignoredPkgs.push(pkgName + '/*');
-    });
-
-    return config;
-  } catch (e) {
-    throw (new Error('failed parsing ' + targetFile + ': ' + e.message));
-  }
+function getGovendorJson(root, targetFile): string {
+  return fs.readFileSync(path.join(root, targetFile), 'utf8');
 }
 
 function pathToPosix(fpath) {
