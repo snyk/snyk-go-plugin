@@ -1,0 +1,27 @@
+{
+    "name": "github.com/antonmedv/expr",
+    "version": "unknown",
+    "packageFormatVersion": "golang:0.0.1",
+    "dependencies": {
+        "github.com/gdamore/tcell": {
+            "name": "github.com/gdamore/tcell",
+            "version": "v1.1.2"
+        },
+        "github.com/rivo/tview": {
+            "name": "github.com/rivo/tview",
+            "version": "#bd836ef13b4b"
+        },
+        "github.com/sanity-io/litter": {
+            "name": "github.com/sanity-io/litter",
+            "version": "v1.1.0"
+        },
+        "golang.org/x/text/width": {
+            "name": "golang.org/x/text/width",
+            "version": "v0.3.2"
+        },
+        "github.com/antlr/antlr4/runtime/Go/antlr": {
+            "name": "github.com/antlr/antlr4/runtime/Go/antlr",
+            "version": "#edae2a1c9b4b"
+        }
+    }
+}

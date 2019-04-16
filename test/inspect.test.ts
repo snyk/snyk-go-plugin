@@ -1,8 +1,12 @@
-const test = require('tap').test;
+import {test} from 'tap';
 import * as path from 'path';
+import * as fs from 'fs';
 
 import * as plugin from '../lib';
 import * as subProcess from '../lib/sub-process';
+
+const load = (filename: string) =>
+  fs.readFileSync(`${__dirname}/fixtures/${filename}`, 'utf8');
 
 test('happy inspect', (t) => {
   chdirToPkg(['path', 'to', 'pkg']);
@@ -210,7 +214,7 @@ test('multi-root project', (t) => {
         goResolveTool,
         '-list',
         '-ignoredPkgs=path/to/multiroot-pkg/shouldskip/ignored_pkg,' +
-          'path/to/multiroot-pkg/shouldskip/ignored_pkg_wildcard/*',
+        'path/to/multiroot-pkg/shouldskip/ignored_pkg_wildcard/*',
       ]).then((result) => {
         t.test('resolved deps', (t) => {
           const list = JSON.parse(result);
@@ -723,6 +727,39 @@ test('corrupt vendor.json', (t) => {
       t.pass();
     });
 });
+
+
+if (process.env.GO_VERSION) {
+  const goVersion = process.env.GO_VERSION.split('.').map(Number);
+  if (goVersion[0] > 1 || goVersion[1] >= 12) {
+
+    test('go.mod inspect', {timeout: 120000}, async (t) => {
+      process.chdir(
+        path.resolve.apply(
+          null,
+          [__dirname, 'fixtures', 'gomod-small']
+        )
+      );
+
+      let result = await plugin.inspect('.', 'go.mod');
+      const pluginInfo = result.plugin;
+      const pkg = result.package;
+
+      t.test('plugin', async (t) => {
+        t.ok(plugin, 'plugin');
+        t.equal(pluginInfo.name, 'snyk-go-plugin', 'name');
+        t.match(pluginInfo.runtime, /^go\d+/, 'engine');
+        t.equal(pluginInfo.targetFile, 'go.mod');
+      });
+
+      t.test('package', async (t) => {
+        const expectedDepTree = JSON.parse(load('gomod-small/expected-tree.json'));
+
+        t.deepEquals(pkg, expectedDepTree);
+      });
+    });
+  }
+}
 
 function chdirToPkg(pkgPathArray) {
   process.env['GOPATH'] = path.resolve(__dirname, 'fixtures', 'gopath');
