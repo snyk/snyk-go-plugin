@@ -23,7 +23,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "graphlib": "^2.1.1",
-    "snyk-go-parser": "^1.0.0",
+    "snyk-go-parser": "1.0.0",
     "tmp": "0.0.33",
     "toml": "^2.3.2"
   },
