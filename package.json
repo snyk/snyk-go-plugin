@@ -6,7 +6,7 @@
     "type": "git",
     "url": "https://github.com/snyk/snyk-go-plugin"
   },
-  "main": "dist/lib/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "lint": "tslint --project tsconfig.json --format stylish",
