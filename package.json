@@ -9,6 +9,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "build-watch": "tsc -w",
     "lint": "tslint --project tsconfig.json --format stylish",
     "prepare": "npm run build",
     "test-functional": "tap ./test/*.test.ts -R spec",

@@ -28,7 +28,6 @@ interface CountDict {
 }
 
 export async function inspect(root, targetFile) {
-
   const result = await Promise.all([
     getMetaData(root, targetFile),
     getDependencies(root, targetFile),
