@@ -6,7 +6,7 @@ import debugLib = require('debug');
 
 import * as subProcess from './sub-process';
 
-import { parseGoConfig, GoPackageManagerType } from 'snyk-go-parser';
+import { parseGoPkgConfig, parseGoVendorConfig, GoPackageManagerType } from 'snyk-go-parser';
 
 const debug = debugLib('snyk-go-plugin');
 
@@ -352,14 +352,14 @@ function parseConfig(root, targetFile): GoProjectConfig {
   switch (pkgManager) {
     case 'golangdep': {
       try {
-        return parseGoConfig(pkgManager, getDepManifest(root, targetFile), getDepLock(root, targetFile));
+        return parseGoPkgConfig(getDepManifest(root, targetFile), getDepLock(root, targetFile));
       } catch (e) {
         throw (new Error('failed parsing manifest/lock files for Go dep: ' + e.message));
       }
     }
     case 'govendor': {
       try {
-        return parseGoConfig(pkgManager, getGovendorJson(root, targetFile), '');
+        return parseGoVendorConfig(getGovendorJson(root, targetFile));
       } catch (e) {
         throw (new Error('failed parsing config file for Go Vendor Tool: ' + e.message));
       }

@@ -325,29 +325,11 @@ test('no Go code', (t) => {
   chdirToPkg(['path', 'to', 'empty']);
 
   return plugin.inspect('.', 'Gopkg.lock')
-    .then((result) => {
-      const plugin = result.plugin;
-      const pkg = result.package;
-
-      t.test('plugin', (t) => {
-        t.ok(plugin, 'plugin');
-        t.equal(plugin.name, 'snyk-go-plugin', 'name');
-        t.match(plugin.runtime, /^go\d+/, 'engine');
-        t.equal(plugin.targetFile, 'Gopkg.lock');
-        t.end();
-      });
-
-      t.test('root pkg', (t) => {
-        t.same(pkg, {
-          name: 'path/to/empty',
-          dependencies: {},
-          version: '',
-          packageFormatVersion: 'golang:0.0.1',
-        }, 'root pkg');
-        t.end();
-      });
-    }
-    );
+    .then(() => {
+      t.fail('expected to err');
+    }).catch((error) => {
+      t.equal(error.message, 'failed parsing manifest/lock files for Go dep: Gopkg.lock and Gopkg.toml file contents are empty', 'correct error message');
+    });
 });
 
 test('with external ignores', (t) => {

@@ -25,7 +25,7 @@
   "dependencies": {
     "debug": "^4.1.1",
     "graphlib": "^2.1.1",
-    "snyk-go-parser": "1.0.0",
+    "snyk-go-parser": "1.0.2",
     "tmp": "0.0.33"
   },
   "devDependencies": {
