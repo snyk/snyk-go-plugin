@@ -23,11 +23,13 @@
   "author": "snyk.io",
   "license": "Apache-2.0",
   "dependencies": {
+    "debug": "^4.1.1",
     "graphlib": "^2.1.1",
-    "snyk-go-parser": "1.0.0",
+    "snyk-go-parser": "1.0.2",
     "tmp": "0.0.33"
   },
   "devDependencies": {
+    "@types/debug": "^4.1.4",
     "@types/graphlib": "^2.1.4",
     "@types/node": "^6.14.4",
     "@types/tmp": "^0.1.0",

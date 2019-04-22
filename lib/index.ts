@@ -2,10 +2,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as graphlib from 'graphlib';
 import * as tmp from 'tmp';
+import debugLib = require('debug');
 
 import * as subProcess from './sub-process';
 
-import { parseGoConfig, GoPackageManagerType } from 'snyk-go-parser';
+import { parseGoPkgConfig, parseGoVendorConfig, GoPackageManagerType } from 'snyk-go-parser';
+
+const debug = debugLib('snyk-go-plugin');
 
 const VIRTUAL_ROOT_NODE_ID = '.';
 
@@ -27,7 +30,13 @@ interface CountDict {
   [k: string]: number;
 }
 
-export async function inspect(root, targetFile) {
+interface Options {
+  debug?: boolean;
+}
+
+export async function inspect(root, targetFile, options: Options = {}) {
+  options.debug ? debugLib.enable('snyk-go-plugin') : debugLib.disable();
+
   const result = await Promise.all([
     getMetaData(root, targetFile),
     getDependencies(root, targetFile),
@@ -102,6 +111,7 @@ function dumpAllResolveDepsFilesInTempDir(tempDirName) {
 async function getDependencies(root, targetFile) {
   let tempDirObj;
   try {
+    debug('parsing manifest/lockfile', {root, targetFile});
     const config = parseConfig(root, targetFile);
     tempDirObj = tmp.dirSync({
       unsafeCleanup: true,
@@ -115,12 +125,15 @@ async function getDependencies(root, targetFile) {
     if (config.ignoredPkgs && config.ignoredPkgs.length > 0) {
       ignorePkgsParam = '-ignoredPkgs=' + config.ignoredPkgs.join(',');
     }
+    const args = ['run', goResolveTool, ignorePkgsParam];
+    debug('executing go deps resolver', {cmd: 'go' + args.join(' ')});
     const graphStr = await subProcess.execute(
       'go',
-      ['run', goResolveTool, ignorePkgsParam],
+      args,
       {cwd: root},
     );
     tempDirObj.removeCallback();
+    debug('loading deps resolver graph output to graphlib', {jsonSize: graphStr.length});
     const graph = graphlib.json.read(JSON.parse(graphStr));
 
     if (!graphlib.alg.isAcyclic(graph)) {
@@ -145,11 +158,13 @@ async function getDependencies(root, targetFile) {
 
     const projectRootPath = getProjectRootFromTargetFile(targetFile);
 
+    debug('building dep-tree');
     const pkgsTree = recursivelyBuildPkgTree(
       graph, rootNode, config.lockedVersions, projectRootPath, {});
     delete pkgsTree._counts;
 
     pkgsTree.packageFormatVersion = 'golang:0.0.1';
+    debug('done building dep-tree', {rootPkgName: pkgsTree.name});
 
     return pkgsTree;
   } catch (error) {
@@ -333,17 +348,18 @@ interface DepManifest {
 
 function parseConfig(root, targetFile): GoProjectConfig {
   const pkgManager = pkgManagerByTarget(targetFile);
+  debug('detected package-manager:', pkgManager);
   switch (pkgManager) {
     case 'golangdep': {
       try {
-        return parseGoConfig(pkgManager, getDepManifest(root, targetFile), getDepLock(root, targetFile));
+        return parseGoPkgConfig(getDepManifest(root, targetFile), getDepLock(root, targetFile));
       } catch (e) {
         throw (new Error('failed parsing manifest/lock files for Go dep: ' + e.message));
       }
     }
     case 'govendor': {
       try {
-        return parseGoConfig(pkgManager, getGovendorJson(root, targetFile), '');
+        return parseGoVendorConfig(getGovendorJson(root, targetFile));
       } catch (e) {
         throw (new Error('failed parsing config file for Go Vendor Tool: ' + e.message));
       }
