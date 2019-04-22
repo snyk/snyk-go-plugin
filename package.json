@@ -6,9 +6,10 @@
     "type": "git",
     "url": "https://github.com/snyk/snyk-go-plugin"
   },
-  "main": "dist/lib/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "build-watch": "tsc -w",
     "lint": "tslint --project tsconfig.json --format stylish",
     "prepare": "npm run build",
     "test-functional": "tap ./test/*.test.ts -R spec",
@@ -24,8 +25,7 @@
   "dependencies": {
     "graphlib": "^2.1.1",
     "snyk-go-parser": "1.0.0",
-    "tmp": "0.0.33",
-    "toml": "^2.3.2"
+    "tmp": "0.0.33"
   },
   "devDependencies": {
     "@types/graphlib": "^2.1.4",

@@ -1,7 +1,5 @@
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
-import * as toml from 'toml';
 import * as graphlib from 'graphlib';
 import * as tmp from 'tmp';
 
@@ -30,7 +28,6 @@ interface CountDict {
 }
 
 export async function inspect(root, targetFile) {
-
   const result = await Promise.all([
     getMetaData(root, targetFile),
     getDependencies(root, targetFile),
