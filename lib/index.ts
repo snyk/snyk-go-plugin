@@ -227,7 +227,7 @@ function recursivelyBuildPkgTree(
   node,
   lockedVersions,
   projectRootPath,
-  counts,
+  totalPackageOccurenceCounter: CountDict,
 ): DepTree {
 
   const isRoot = (node.Name === VIRTUAL_ROOT_NODE_ID);
@@ -251,14 +251,12 @@ function recursivelyBuildPkgTree(
     pkg.version = lockedVersions[pkg.name].version;
   }
 
-  pkg._counts = {};
-
   const children = graph.successors(node.Name).sort();
   children.forEach((depName) => {
 
     // We drop branches of overly common pkgs:
     // this looses some paths, but avoids explosion in result size
-    if ((counts[depName] || 0) + (pkg._counts[depName] || 0)  > 10) {
+    if ((totalPackageOccurenceCounter[depName] || 0) > 10) {
       return;
     }
 
@@ -269,11 +267,8 @@ function recursivelyBuildPkgTree(
       dep,
       lockedVersions,
       projectRootPath,
-      sumCounts(counts, pkg._counts),
+      totalPackageOccurenceCounter,
     );
-
-    pkg._counts = sumCounts(pkg._counts, child._counts);
-    delete child._counts;
 
     if (child._isProjSubpkg) {
       Object.keys(child.dependencies!).forEach((grandChildName) => {
@@ -287,22 +282,12 @@ function recursivelyBuildPkgTree(
       // in case was already added via a grandchild
       if (!pkg.dependencies![child.name]) {
         pkg.dependencies![child.name] = child;
-        pkg._counts[child.name] = (pkg._counts[child.name] || 0) + 1;
+        totalPackageOccurenceCounter[child.name] = (totalPackageOccurenceCounter[child.name] || 0) + 1;
       }
     }
   });
 
   return pkg;
-}
-
-function sumCounts(a: CountDict, b: CountDict): CountDict {
-  const sum = {...a};
-
-  for (const k of Object.keys(b)) {
-    sum[k] = (sum[k] || 0) + b[k];
-  }
-
-  return sum;
 }
 
 function isProjSubpackage(pkgPath, projectRootPath) {
@@ -325,8 +310,6 @@ function isProjSubpackage(pkgPath, projectRootPath) {
 
   return true;
 }
-
-// TODO(kyegupov): the part below will move to snyk-go-parser
 
 interface LockedDep {
   name: string;
