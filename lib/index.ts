@@ -254,8 +254,8 @@ function recursivelyBuildPkgTree(
   const children = graph.successors(node.Name).sort();
   children.forEach((depName) => {
 
-    // We drop branches of overly common pkgs:
-    // this looses some paths, but avoids explosion in result size
+    // We drop whole dep tree branches for frequently repeatedpackages:
+    // this loses some paths, but avoids explosion in result size
     if ((totalPackageOccurenceCounter[depName] || 0) > 10) {
       return;
     }
@@ -272,12 +272,18 @@ function recursivelyBuildPkgTree(
 
     if (child._isProjSubpkg) {
       Object.keys(child.dependencies!).forEach((grandChildName) => {
-        // don't merge grandchild if already a child,
-        // because it was traversed with higher counts and may be more partial
+        // We merge all the subpackages of the project into the root project, by transplanting dependencies of the
+        // subpackages one level up.
+        // This is done to decrease the tree size - and to be similar to other languages, where we are only showing
+        // dependencies at the project level, not at the level of individual code sub-directories (which Go packages
+        // are, essentially).
         if (!pkg.dependencies![grandChildName]) {
           pkg.dependencies![grandChildName] = child.dependencies![grandChildName];
         }
       });
+      // Even though subpackages are not preserved in the result, we still need protection from combinatorial explosion
+      // while scanning the tree.
+      totalPackageOccurenceCounter[child.name] = (totalPackageOccurenceCounter[child.name] || 0) + 1;
     } else {
       // in case was already added via a grandchild
       if (!pkg.dependencies![child.name]) {
