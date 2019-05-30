@@ -448,8 +448,7 @@ export async function buildDepTreeFromImports(path: string = '.') {
   if (goDepsOutput.includes('matched no packages')) {
     return depTree;
   }
-  const objectBorderRegexp = new RegExp(`}${os.EOL}{`, 'g');
-  const goDepsString = `[${goDepsOutput.replace(objectBorderRegexp, '},{')}]`;
+  const goDepsString = `[${goDepsOutput.replace(/}\r?\n{/g, '},{')}]`;
   const goDeps: GoPackage[] = JSON.parse(goDepsString);
   const packageImports = extractImports(goDeps);
 
