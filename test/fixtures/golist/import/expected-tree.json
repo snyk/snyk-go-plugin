@@ -1,0 +1,54 @@
+{
+ "dependencies": {
+   "encoding/json": {
+     "name": "encoding/json",
+     "version": "<versionFromParentModule>"
+   },
+   "flag": {
+     "name": "flag",
+     "version": "<versionFromParentModule>"
+   },
+   "fmt": {
+     "name": "fmt",
+     "version": "<versionFromParentModule>"
+   },
+   "github.com/snyk/go-deps-resolver/resolver": {
+     "name": "github.com/snyk/go-deps-resolver/resolver",
+     "version": "<versionFromParentModule>"
+   },
+   "github.com/snyk/go-deps-resolver/resolver/dirwalk": {
+     "name": "github.com/snyk/go-deps-resolver/resolver/dirwalk",
+     "version": "<versionFromParentModule>"
+   },
+   "github.com/snyk/go-deps-resolver/resolver/graph": {
+     "name": "github.com/snyk/go-deps-resolver/resolver/graph",
+     "version": "<versionFromParentModule>"
+   },
+   "go/build": {
+     "name": "go/build",
+     "version": "<versionFromParentModule>"
+   },
+   "os": {
+     "name": "os",
+     "version": "<versionFromParentModule>"
+   },
+   "path": {
+     "name": "path",
+     "version": "<versionFromParentModule>"
+   },
+   "path/filepath": {
+     "name": "path/filepath",
+     "version": "<versionFromParentModule>"
+   },
+   "sort": {
+     "name": "sort",
+     "version": "<versionFromParentModule>"
+   },
+   "strings": {
+     "name": "strings",
+     "version": "<versionFromParentModule>"
+   }
+ },
+ "name": "tempName",
+ "version": "tempVersion"
+}
