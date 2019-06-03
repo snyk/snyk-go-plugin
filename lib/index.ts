@@ -7,7 +7,8 @@ import debugLib = require('debug');
 
 import * as subProcess from './sub-process';
 
-import { parseGoPkgConfig, parseGoVendorConfig, GoPackageManagerType } from 'snyk-go-parser';
+import { parseGoPkgConfig, parseGoVendorConfig, GoPackageManagerType, GoProjectConfig } from 'snyk-go-parser';
+import { buildModuleGraph, isPackageInTheModule } from './go-mod-analysis';
 
 const debug = debugLib('snyk-go-plugin');
 
@@ -109,8 +110,25 @@ function dumpAllResolveDepsFilesInTempDir(tempDirName) {
   });
 }
 
+const PACKAGE_MANAGER_BY_TARGET: {[k: string]: GoPackageManagerType}  = {
+  'Gopkg.lock': 'golangdep',
+  'vendor.json': 'govendor',
+  'go.mod': 'gomod',
+};
+
+const VENDOR_SYNC_CMD_BY_PKG_MANAGER: {[k in GoPackageManagerType]: string} = {
+  golangdep: 'dep ensure',
+  govendor: 'govendor sync',
+  gomod: 'go mod download',
+};
+
 async function getDependencies(root, targetFile) {
   let tempDirObj;
+  const packageManager = PACKAGE_MANAGER_BY_TARGET[targetFile];
+  if (packageManager === 'gomod') {
+    return buildDepTreeFromImportsAndModules(root);
+  }
+
   try {
     debug('parsing manifest/lockfile', {root, targetFile});
     const config = parseConfig(root, targetFile);
@@ -186,16 +204,6 @@ async function getDependencies(root, targetFile) {
   }
 }
 
-const PACKAGE_MANAGER_BY_TARGET: {[k: string]: GoPackageManagerType}  = {
-  'Gopkg.lock': 'golangdep',
-  'vendor.json': 'govendor',
-};
-
-const VENDOR_SYNC_CMD_BY_PKG_MANAGER: {[k in GoPackageManagerType]: string} = {
-  golangdep: 'dep ensure',
-  govendor: 'govendor sync',
-};
-
 function pkgManagerByTarget(targetFile): GoPackageManagerType {
   const fname = path.basename(targetFile);
   return PACKAGE_MANAGER_BY_TARGET[fname];
@@ -218,6 +226,10 @@ function getProjectRootFromTargetFile(targetFile) {
     parts[parts.length - 1] === 'vendor.json' &&
     parts[parts.length - 2] === 'vendor') {
     return path.dirname(path.dirname(resolved));
+  }
+
+  if (parts[parts.length - 1] === 'go.mod') {
+    return path.dirname(resolved);
   }
 
   throw new Error('Unsupported file: ' + targetFile);
@@ -327,11 +339,6 @@ interface LockedDeps {
   [dep: string]: LockedDep;
 }
 
-interface GoProjectConfig {
-  ignoredPkgs: string[];
-  lockedVersions: LockedDeps;
-}
-
 interface DepManifest {
   ignored: string[];
 }
@@ -437,14 +444,20 @@ interface GoPackageError {
   Err: string; // the error itself
 }
 
+// For now, this only gets top-level package dependencies.
+// TODO(BST-652): indirect dependencies
+// TODO(kyegupov): move to a separate file
+export async function buildDepTreeFromImportsAndModules(root: string = '.') {
 
-export async function buildDepTreeFromImports(path: string = '.') {
+  // TODO(BST-657): parse go.mod file to obtain root module name and go version
+
   const depTree: DepTree = {
-    name: 'tempName', // TODO: How do get name of the module?
-    version: 'tempVersion', // TODO: How do get version of the module?
+    name: '.', // The correct name should come from the go.mod parser
+    version: 'unknown', // TODO(BST-657): try `git describe`?
+    packageFormatVersion: 'golang:0.0.1',
     dependencies: {},
   };
-  const goDepsOutput = await subProcess.execute('go list', ['-json', './...'], { cwd: path } )
+  const goDepsOutput = await subProcess.execute('go list', ['-json', './...'], { cwd: root } );
   if (goDepsOutput.includes('matched no packages')) {
     return depTree;
   }
@@ -452,10 +465,35 @@ export async function buildDepTreeFromImports(path: string = '.') {
   const goDeps: GoPackage[] = JSON.parse(goDepsString);
   const packageImports = extractImports(goDeps);
 
+  const moduleGraph = await buildModuleGraph(root);
+  const topLevelModuleVersions = {};
+  if (moduleGraph.root) {
+    depTree.name = moduleGraph.root;
+    for (const mv of moduleGraph.edges[moduleGraph.root]) {
+      const [m, v] = mv.split('@');
+      topLevelModuleVersions[m] = v;
+    }
+  }
+
   for (const packageImport of packageImports.values()) {
+    let version = 'unknown';
+    if (isBuiltinPackage(packageImport)) {
+      // We do not track vulns in Go standard library
+      continue;
+    } else if (moduleGraph.root && isPackageInTheModule(packageImport, moduleGraph.root)) {
+      // Do not include packages of this module
+      continue;
+    } else {
+      // This is an O(n*m) algorightm, should be fine for top-level
+      // TODO(kyegupov): optimize when we get to full trees
+      const mod = Object.keys(topLevelModuleVersions).find((m) => isPackageInTheModule(packageImport, m));
+      if (mod) {
+        version = topLevelModuleVersions[mod];
+      }
+    }
     depTree.dependencies![packageImport] = {
       name: packageImport,
-      version: '<versionFromParentModule>', // TODO: Propagation of vesion from module is a separate task
+      version,
     };
   }
 
@@ -471,4 +509,19 @@ function extractImports(goDeps: GoPackage[]): Set<string> {
   }
 
   return goDepsImports;
+}
+
+// Better error message than JSON.parse
+export function jsonParse(s: string) {
+  try {
+    return JSON.parse(s);
+  } catch (e) {
+    e.message = e.message + ', original string: "' + s + '"';
+    throw e;
+  }
+}
+
+function isBuiltinPackage(pkgName: string): boolean {
+  // Non-builtin packages have domain names in them that contain dots
+  return pkgName.indexOf('.') === -1;
 }

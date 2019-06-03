@@ -10,6 +10,7 @@ node_js:
 env:
   - GO_VERSION=1.9.5
   - GO_VERSION=1.10.1
+  - GO_VERSION=1.12.4
 cache:
   directories:
     - node_modules

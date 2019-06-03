@@ -1,5 +1,6 @@
 {
-    "name": "tempName",
-    "version": "tempVersion",
+    "name": ".",
+    "version": "unknown",
+    "packageFormatVersion": "golang:0.0.1",
     "dependencies": {}
 }

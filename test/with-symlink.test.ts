@@ -4,6 +4,8 @@ import * as path from 'path';
 
 import * as subProcess from '../lib/sub-process';
 
+import {jsonParse} from '../lib';
+
 test('with nested GOPATH/src/proj symlink-ing to ../..', (t) => {
   const rootFolder = path.resolve(
     __dirname, 'fixtures', 'proj-with-nested-gopath-and-symlink');
@@ -19,7 +21,7 @@ test('with nested GOPATH/src/proj symlink-ing to ../..', (t) => {
     `cd '${cwd}' ; export GOPATH=${gopath} ; ${__dirname}/../node_modules/.bin/ts-node ${manualScriptPath} Gopkg.lock`,
     [])
     .then((result) => {
-      const resultJson = JSON.parse(result);
+      const resultJson = jsonParse(result);
 
       const plugin = resultJson.plugin;
       const pkg = resultJson.package;
