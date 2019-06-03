@@ -7,8 +7,9 @@ import debugLib = require('debug');
 
 import * as subProcess from './sub-process';
 
-import { parseGoPkgConfig, parseGoVendorConfig, GoPackageManagerType, GoProjectConfig } from 'snyk-go-parser';
-import { buildModuleGraph, isPackageInTheModule } from './go-mod-analysis';
+import {
+  parseGoPkgConfig, parseGoVendorConfig, GoPackageManagerType, GoProjectConfig, toSnykVersion, parseVersion,
+} from 'snyk-go-parser';
 
 const debug = debugLib('snyk-go-plugin');
 
@@ -411,7 +412,7 @@ interface GoPackage {
   Match?: string[]; // command-line patterns matching this package
   DepOnly?: boolean; // package is only a dependency, not explicitly listed
   // Dependency information
-  Imports: string[]; // import paths used by this package
+  Imports?: string[]; // import paths used by this package
   ImportMap: { string: string }; // map from source import to ImportPath (identity entries omitted)
   Deps: string[]; // all (recursively) imported dependencies
   TestImports: string[]; // imports from TestGoFiles
@@ -444,8 +445,10 @@ interface GoPackageError {
   Err: string; // the error itself
 }
 
-// For now, this only gets top-level package dependencies.
-// TODO(BST-652): indirect dependencies
+interface GoPackagesByName {
+  [name: string]: GoPackage;
+}
+
 // TODO(kyegupov): move to a separate file
 export async function buildDepTreeFromImportsAndModules(root: string = '.') {
 
@@ -455,60 +458,71 @@ export async function buildDepTreeFromImportsAndModules(root: string = '.') {
     name: '.', // The correct name should come from the go.mod parser
     version: 'unknown', // TODO(BST-657): try `git describe`?
     packageFormatVersion: 'golang:0.0.1',
-    dependencies: {},
   };
-  const goDepsOutput = await subProcess.execute('go list', ['-json', './...'], { cwd: root } );
+  const goDepsOutput = await subProcess.execute('go list', ['-json', '-deps', './...'], { cwd: root } );
   if (goDepsOutput.includes('matched no packages')) {
     return depTree;
   }
   const goDepsString = `[${goDepsOutput.replace(/}\r?\n{/g, '},{')}]`;
   const goDeps: GoPackage[] = JSON.parse(goDepsString);
-  const packageImports = extractImports(goDeps);
-
-  const moduleGraph = await buildModuleGraph(root);
-  const topLevelModuleVersions = {};
-  if (moduleGraph.root) {
-    depTree.name = moduleGraph.root;
-    for (const mv of moduleGraph.edges[moduleGraph.root]) {
-      const [m, v] = mv.split('@');
-      topLevelModuleVersions[m] = v;
-    }
+  const packagesByName: GoPackagesByName = {};
+  for (const gp of goDeps) {
+    packagesByName[gp.ImportPath] = gp; // ImportPath is the fully qualified name
   }
 
-  for (const packageImport of packageImports.values()) {
+  const localPackages = goDeps.filter((gp) => !gp.DepOnly);
+  if (localPackages[0].Module) {
+    depTree.name = localPackages[0].Module.Path;
+  }
+
+  const topLevelDeps = extractAllImports(localPackages);
+  buildTree(depTree, topLevelDeps, packagesByName);
+  return depTree;
+}
+
+function buildTree(
+  depTreeNode: DepTree,
+  depPackages: string[],
+  packagesByName: GoPackagesByName,
+) {
+  for (const packageImport of depPackages) {
     let version = 'unknown';
     if (isBuiltinPackage(packageImport)) {
       // We do not track vulns in Go standard library
       continue;
-    } else if (moduleGraph.root && isPackageInTheModule(packageImport, moduleGraph.root)) {
+    } else if (!packagesByName[packageImport].DepOnly) {
       // Do not include packages of this module
       continue;
     } else {
-      // This is an O(n*m) algorightm, should be fine for top-level
-      // TODO(kyegupov): optimize when we get to full trees
-      const mod = Object.keys(topLevelModuleVersions).find((m) => isPackageInTheModule(packageImport, m));
-      if (mod) {
-        version = topLevelModuleVersions[mod];
+      const pkg = packagesByName[packageImport]!;
+      if (pkg.Module && pkg.Module.Version) {
+        version = toSnykVersion(parseVersion(pkg.Module.Version));
+      }
+      const newNode = {
+        name: packageImport,
+        version,
+      };
+      if (!depTreeNode.dependencies) {
+        depTreeNode.dependencies = {};
+      }
+      depTreeNode.dependencies![packageImport] = newNode;
+      if (packagesByName[packageImport].Imports) {
+        buildTree(newNode, packagesByName[packageImport].Imports!, packagesByName);
       }
     }
-    depTree.dependencies![packageImport] = {
-      name: packageImport,
-      version,
-    };
   }
-
-  return depTree;
 }
 
-function extractImports(goDeps: GoPackage[]): Set<string> {
+function extractAllImports(goDeps: GoPackage[]): string[] {
   const goDepsImports = new Set<string>();
-  for (const module of goDeps) {
-    for (const packageImport of module.Imports) {
-      goDepsImports.add(packageImport);
+  for (const pkg of goDeps) {
+    if (pkg.Imports) {
+      for (const imp of pkg.Imports) {
+        goDepsImports.add(imp);
+      }
     }
   }
-
-  return goDepsImports;
+  return Array.from(goDepsImports);
 }
 
 // Better error message than JSON.parse

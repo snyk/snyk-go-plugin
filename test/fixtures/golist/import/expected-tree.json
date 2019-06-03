@@ -1,19 +1,5 @@
 {
- "dependencies": {
-   "github.com/snyk/go-deps-resolver/resolver": {
-     "name": "github.com/snyk/go-deps-resolver/resolver",
-     "version": "unknown"
-   },
-   "github.com/snyk/go-deps-resolver/resolver/dirwalk": {
-     "name": "github.com/snyk/go-deps-resolver/resolver/dirwalk",
-     "version": "unknown"
-   },
-   "github.com/snyk/go-deps-resolver/resolver/graph": {
-     "name": "github.com/snyk/go-deps-resolver/resolver/graph",
-     "version": "unknown"
-   }
- },
- "name": ".",
- "version": "unknown",
- "packageFormatVersion": "golang:0.0.1"
+  "name": "github.com/snyk/go-deps-resolver",
+  "version": "unknown",
+  "packageFormatVersion": "golang:0.0.1"
 }
