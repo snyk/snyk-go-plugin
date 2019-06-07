@@ -1,6 +1,5 @@
 {
     "name": ".",
     "version": "unknown",
-    "packageFormatVersion": "golang:0.0.1",
-    "dependencies": {}
+    "packageFormatVersion": "golang:0.0.1"
 }
