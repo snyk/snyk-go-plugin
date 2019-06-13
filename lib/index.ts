@@ -114,19 +114,19 @@ function dumpAllResolveDepsFilesInTempDir(tempDirName) {
 const PACKAGE_MANAGER_BY_TARGET: {[k: string]: GoPackageManagerType}  = {
   'Gopkg.lock': 'golangdep',
   'vendor.json': 'govendor',
-  'go.mod': 'gomod',
+  'go.mod': 'gomodules',
 };
 
 const VENDOR_SYNC_CMD_BY_PKG_MANAGER: {[k in GoPackageManagerType]: string} = {
   golangdep: 'dep ensure',
   govendor: 'govendor sync',
-  gomod: 'go mod download',
+  gomodules: 'go mod download',
 };
 
 async function getDependencies(root, targetFile) {
   let tempDirObj;
   const packageManager = PACKAGE_MANAGER_BY_TARGET[targetFile];
-  if (packageManager === 'gomod') {
+  if (packageManager === 'gomodules') {
     return buildDepTreeFromImportsAndModules(root);
   }
 
