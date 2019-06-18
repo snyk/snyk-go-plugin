@@ -125,7 +125,7 @@ const VENDOR_SYNC_CMD_BY_PKG_MANAGER: {[k in GoPackageManagerType]: string} = {
 
 async function getDependencies(root, targetFile) {
   let tempDirObj;
-  const packageManager = PACKAGE_MANAGER_BY_TARGET[targetFile];
+  const packageManager = pkgManagerByTarget(targetFile);
   if (packageManager === 'gomodules') {
     return buildDepTreeFromImportsAndModules(root);
   }
