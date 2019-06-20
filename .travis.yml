@@ -3,6 +3,8 @@ sudo: false
 notifications:
   email: false
 language: node_js
+script:
+  - npx @commitlint/travis-cli
 node_js:
   - "10"
   - "8"
