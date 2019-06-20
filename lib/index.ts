@@ -455,8 +455,8 @@ export async function buildDepTreeFromImportsAndModules(root: string = '.') {
   // TODO(BST-657): parse go.mod file to obtain root module name and go version
 
   const depTree: DepTree = {
-    name: '.', // The correct name should come from the go.mod parser
-    version: 'unknown', // TODO(BST-657): try `git describe`?
+    name: path.basename(root), // The correct name should come from the `go list` command
+    version: '0.0.0', // TODO(BST-657): try `git describe`?
     packageFormatVersion: 'golang:0.0.1',
   };
   const goDepsOutput = await subProcess.execute('go list', ['-json', '-deps', './...'], { cwd: root } );
@@ -471,8 +471,10 @@ export async function buildDepTreeFromImportsAndModules(root: string = '.') {
   }
 
   const localPackages = goDeps.filter((gp) => !gp.DepOnly);
-  if (localPackages[0].Module) {
-    depTree.name = localPackages[0].Module.Path;
+  const localPackageWithMainModule = localPackages
+      .find((localPackage) => (localPackage.Module && localPackage.Module.Main));
+  if (localPackageWithMainModule && localPackageWithMainModule!.Module!.Path) {
+    depTree.name = localPackageWithMainModule!.Module!.Path;
   }
 
   const topLevelDeps = extractAllImports(localPackages);
