@@ -6,6 +6,7 @@ import * as os from 'os';
 import debugLib = require('debug');
 
 import * as subProcess from './sub-process';
+import { CustomError } from './errors/custom-error';
 
 import {
   parseGoPkgConfig, parseGoVendorConfig, GoPackageManagerType, GoProjectConfig, toSnykVersion, parseVersion,
@@ -459,7 +460,17 @@ export async function buildDepTreeFromImportsAndModules(root: string = '.') {
     version: '0.0.0', // TODO(BST-657): try `git describe`?
     packageFormatVersion: 'golang:0.0.1',
   };
-  const goDepsOutput = await subProcess.execute('go list', ['-json', '-deps', './...'], { cwd: root } );
+
+  let goDepsOutput: string;
+  try {
+    goDepsOutput = await subProcess.execute('go list', ['-json', '-deps', './...'], { cwd: root } );
+
+  } catch (err) {
+    const userError = new CustomError(err);
+    userError.userMessage = "'go list -json -deps ./...' command failed with error: " + userError.message;
+    throw userError;
+  }
+
   if (goDepsOutput.includes('matched no packages')) {
     return depTree;
   }
