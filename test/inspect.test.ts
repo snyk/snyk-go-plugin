@@ -757,6 +757,23 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       t.deepEquals(pkg, expectedDepTree);
     });
   });
+
+  test('invalid go.mod', {timeout: 120000}, async (t) => {
+
+    process.chdir(
+      path.resolve.apply(
+        null,
+        [__dirname, 'fixtures', 'gomod-small-failing'],
+      ),
+    );
+
+    try {
+      await plugin.inspect('.', 'go.mod');
+    } catch (e) {
+      t.match(e.message, 'go: errors parsing go.mod');
+      t.match(e.userMessage, '\'go list -json -deps ./...\' command failed with error');
+    }
+  });
 }
 
 function chdirToPkg(pkgPathArray) {
