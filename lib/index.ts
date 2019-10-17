@@ -483,7 +483,7 @@ export async function buildDepTreeFromImportsAndModules(root: string = '.') {
 
   const localPackages = goDeps.filter((gp) => !gp.DepOnly);
   const localPackageWithMainModule = localPackages
-      .find((localPackage) => (localPackage.Module && localPackage.Module.Main));
+      .find((localPackage) => !!(localPackage.Module && localPackage.Module.Main));
   if (localPackageWithMainModule && localPackageWithMainModule!.Module!.Path) {
     depTree.name = localPackageWithMainModule!.Module!.Path;
   }
