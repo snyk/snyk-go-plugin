@@ -5,11 +5,11 @@
     "dependencies": {
         "golang.org/x/text/width": {
             "name": "golang.org/x/text/width",
-            "version": "v0.3.2",
+            "version": "0.3.2",
             "dependencies": {
                 "golang.org/x/text/transform": {
                     "name": "golang.org/x/text/transform",
-                    "version": "v0.3.2"
+                    "version": "0.3.2"
                 }
             }
         },
@@ -19,61 +19,61 @@
         },
         "github.com/gdamore/tcell": {
             "name": "github.com/gdamore/tcell",
-            "version": "v1.1.2",
+            "version": "1.1.2",
             "dependencies": {
                 "github.com/gdamore/encoding": {
                     "name": "github.com/gdamore/encoding",
-                    "version": "v1.0.0",
+                    "version": "1.0.0",
                     "dependencies": {
                         "golang.org/x/text/encoding": {
                             "name": "golang.org/x/text/encoding",
-                            "version": "v0.3.2",
+                            "version": "0.3.2",
                             "dependencies": {
                                 "golang.org/x/text/encoding/internal/identifier": {
                                     "name": "golang.org/x/text/encoding/internal/identifier",
-                                    "version": "v0.3.2"
+                                    "version": "0.3.2"
                                 },
                                 "golang.org/x/text/transform": {
                                     "name": "golang.org/x/text/transform",
-                                    "version": "v0.3.2"
+                                    "version": "0.3.2"
                                 }
                             }
                         },
                         "golang.org/x/text/transform": {
                             "name": "golang.org/x/text/transform",
-                            "version": "v0.3.2"
+                            "version": "0.3.2"
                         }
                     }
                 },
                 "github.com/gdamore/tcell/terminfo": {
                     "name": "github.com/gdamore/tcell/terminfo",
-                    "version": "v1.1.2"
+                    "version": "1.1.2"
                 },
                 "github.com/lucasb-eyer/go-colorful": {
                     "name": "github.com/lucasb-eyer/go-colorful",
-                    "version": "v1.0.2"
+                    "version": "1.0.2"
                 },
                 "github.com/mattn/go-runewidth": {
                     "name": "github.com/mattn/go-runewidth",
-                    "version": "v0.0.4"
+                    "version": "0.0.4"
                 },
                 "golang.org/x/text/encoding": {
                     "name": "golang.org/x/text/encoding",
-                    "version": "v0.3.2",
+                    "version": "0.3.2",
                     "dependencies": {
                         "golang.org/x/text/encoding/internal/identifier": {
                             "name": "golang.org/x/text/encoding/internal/identifier",
-                            "version": "v0.3.2"
+                            "version": "0.3.2"
                         },
                         "golang.org/x/text/transform": {
                             "name": "golang.org/x/text/transform",
-                            "version": "v0.3.2"
+                            "version": "0.3.2"
                         }
                     }
                 },
                 "golang.org/x/text/transform": {
                     "name": "golang.org/x/text/transform",
-                    "version": "v0.3.2"
+                    "version": "0.3.2"
                 }
             }
         },
@@ -83,71 +83,71 @@
             "dependencies": {
                 "github.com/gdamore/tcell": {
                     "name": "github.com/gdamore/tcell",
-                    "version": "v1.1.2",
+                    "version": "1.1.2",
                     "dependencies": {
                         "github.com/gdamore/encoding": {
                             "name": "github.com/gdamore/encoding",
-                            "version": "v1.0.0",
+                            "version": "1.0.0",
                             "dependencies": {
                                 "golang.org/x/text/encoding": {
                                     "name": "golang.org/x/text/encoding",
-                                    "version": "v0.3.2",
+                                    "version": "0.3.2",
                                     "dependencies": {
                                         "golang.org/x/text/encoding/internal/identifier": {
                                             "name": "golang.org/x/text/encoding/internal/identifier",
-                                            "version": "v0.3.2"
+                                            "version": "0.3.2"
                                         },
                                         "golang.org/x/text/transform": {
                                             "name": "golang.org/x/text/transform",
-                                            "version": "v0.3.2"
+                                            "version": "0.3.2"
                                         }
                                     }
                                 },
                                 "golang.org/x/text/transform": {
                                     "name": "golang.org/x/text/transform",
-                                    "version": "v0.3.2"
+                                    "version": "0.3.2"
                                 }
                             }
                         },
                         "github.com/gdamore/tcell/terminfo": {
                             "name": "github.com/gdamore/tcell/terminfo",
-                            "version": "v1.1.2"
+                            "version": "1.1.2"
                         },
                         "github.com/lucasb-eyer/go-colorful": {
                             "name": "github.com/lucasb-eyer/go-colorful",
-                            "version": "v1.0.2"
+                            "version": "1.0.2"
                         },
                         "github.com/mattn/go-runewidth": {
                             "name": "github.com/mattn/go-runewidth",
-                            "version": "v0.0.4"
+                            "version": "0.0.4"
                         },
                         "golang.org/x/text/encoding": {
                             "name": "golang.org/x/text/encoding",
-                            "version": "v0.3.2",
+                            "version": "0.3.2",
                             "dependencies": {
                                 "golang.org/x/text/encoding/internal/identifier": {
                                     "name": "golang.org/x/text/encoding/internal/identifier",
-                                    "version": "v0.3.2"
+                                    "version": "0.3.2"
                                 },
                                 "golang.org/x/text/transform": {
                                     "name": "golang.org/x/text/transform",
-                                    "version": "v0.3.2"
+                                    "version": "0.3.2"
                                 }
                             }
                         },
                         "golang.org/x/text/transform": {
                             "name": "golang.org/x/text/transform",
-                            "version": "v0.3.2"
+                            "version": "0.3.2"
                         }
                     }
                 },
                 "github.com/lucasb-eyer/go-colorful": {
                     "name": "github.com/lucasb-eyer/go-colorful",
-                    "version": "v1.0.2"
+                    "version": "1.0.2"
                 },
                 "github.com/mattn/go-runewidth": {
                     "name": "github.com/mattn/go-runewidth",
-                    "version": "v0.0.4"
+                    "version": "0.0.4"
                 },
                 "github.com/rivo/uniseg": {
                     "name": "github.com/rivo/uniseg",
@@ -157,7 +157,7 @@
         },
         "github.com/sanity-io/litter": {
             "name": "github.com/sanity-io/litter",
-            "version": "v1.1.0"
+            "version": "1.1.0"
         }
     }
 }
