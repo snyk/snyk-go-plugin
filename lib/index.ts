@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as graphlib from 'graphlib';
 import * as tmp from 'tmp';
-import * as os from 'os';
 import debugLib = require('debug');
 
 import * as subProcess from './sub-process';
@@ -36,6 +35,7 @@ interface CountDict {
 
 interface Options {
   debug?: boolean;
+  file?: string;
 }
 
 export async function inspect(root, targetFile, options: Options = {}) {
@@ -128,7 +128,7 @@ async function getDependencies(root, targetFile) {
   let tempDirObj;
   const packageManager = pkgManagerByTarget(targetFile);
   if (packageManager === 'gomodules') {
-    return buildDepTreeFromImportsAndModules(root);
+    return buildDepTreeFromImportsAndModules(root, targetFile);
   }
 
   try {
@@ -451,7 +451,7 @@ interface GoPackagesByName {
 }
 
 // TODO(kyegupov): move to a separate file
-export async function buildDepTreeFromImportsAndModules(root: string = '.') {
+export async function buildDepTreeFromImportsAndModules(root: string = '.', targetFile: string = 'go.mod') {
 
   // TODO(BST-657): parse go.mod file to obtain root module name and go version
 
@@ -463,7 +463,8 @@ export async function buildDepTreeFromImportsAndModules(root: string = '.') {
 
   let goDepsOutput: string;
   try {
-    goDepsOutput = await subProcess.execute('go list', ['-json', '-deps', './...'], { cwd: root } );
+    const goModAbsolutPath = path.resolve(root, path.dirname(targetFile));
+    goDepsOutput = await subProcess.execute('go list', ['-json', '-deps', './...'], { cwd: goModAbsolutPath } );
 
   } catch (err) {
     const userError = new CustomError(err);
