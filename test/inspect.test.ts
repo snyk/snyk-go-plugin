@@ -758,6 +758,32 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
     });
   });
 
+  test('go.mod inspect --file', {timeout: 120000}, async (t) => {
+    process.chdir(
+        path.resolve.apply(
+            null,
+            [__dirname, 'fixtures']
+        )
+    );
+
+    let result = await plugin.inspect('.', 'gomod-small/go.mod', { file: 'gomod-small/go.mod' });
+    const pluginInfo = result.plugin;
+    const pkg = result.package;
+
+    t.test('plugin', async (t) => {
+      t.ok(plugin, 'plugin');
+      t.equal(pluginInfo.name, 'snyk-go-plugin', 'name');
+      t.match(pluginInfo.runtime, /^go\d+/, 'engine');
+      t.equal(pluginInfo.targetFile, 'gomod-small/go.mod');
+    });
+
+    t.test('package', async (t) => {
+      const expectedDepTree = JSON.parse(load('gomod-small/expected-tree.json'));
+
+      t.deepEquals(pkg, expectedDepTree);
+    });
+  });
+
   test('invalid go.mod', {timeout: 120000}, async (t) => {
 
     process.chdir(
