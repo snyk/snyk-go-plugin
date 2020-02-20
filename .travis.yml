@@ -21,7 +21,7 @@ install:
 jobs:
   include:
     - stage: npm release
-      node_js: "8"
+      node_js: "10"
       script: skip
       after_success:
         - npx semantic-release
