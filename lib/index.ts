@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as graphlib from 'graphlib';
+import * as graphlib from '@snyk/graphlib';
 import * as tmp from 'tmp';
 import debugLib = require('debug');
 
