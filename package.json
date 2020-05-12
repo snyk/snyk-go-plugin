@@ -26,7 +26,7 @@
   "dependencies": {
     "@snyk/graphlib": "2.1.9-patch",
     "debug": "^4.1.1",
-    "snyk-go-parser": "1.4.0",
+    "snyk-go-parser": "1.4.1",
     "tmp": "0.1.0",
     "tslib": "^1.10.0"
   },
