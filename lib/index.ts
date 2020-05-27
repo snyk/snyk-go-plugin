@@ -499,7 +499,9 @@ function buildTree(
   depPackages: string[],
   packagesByName: GoPackagesByName,
 ) {
-  for (const packageImport of depPackages) {
+  const depPackagesLen = depPackages.length;
+  for (let i = depPackagesLen - 1; i >= 0; i--) {
+    const packageImport = depPackages[i];
     let version = 'unknown';
     if (isBuiltinPackage(packageImport)) {
       // We do not track vulns in Go standard library
