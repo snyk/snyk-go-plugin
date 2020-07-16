@@ -14,58 +14,61 @@ test('happy inspect', (t) => {
 
   return plugin.inspect('.', 'Gopkg.lock')
     .then((result) => {
-      const plugin = result.plugin;
-      const pkg = result.package;
 
-      t.test('plugin', (t) => {
-        t.ok(plugin, 'plugin');
-        t.equal(plugin.name, 'snyk-go-plugin', 'name');
-        t.match(plugin.runtime, /^go\d+/, 'engine');
-        t.equal(plugin.targetFile, 'Gopkg.lock');
-        t.end();
-      });
+        t.ok(result.plugin, 'result contains a plugin');
+        t.ok(result.package, 'result contains a depTree in package');
 
-      t.test('root pkg', (t) => {
-        t.match(pkg, {
-          name: 'path/to/pkg',
-          version: '',
-          packageFormatVersion: 'golang:0.0.1',
-        }, 'root pkg');
-        t.end();
-      });
+        const plugin = result.plugin;
+        const pkg = result.package;
+  
+        t.test('plugin', (t) => {
+          t.ok(plugin, 'plugin');
+          t.equal(plugin.name, 'snyk-go-plugin', 'name');
+          t.match(plugin.runtime, /^go\d+/, 'engine');
+          t.equal(plugin.targetFile, 'Gopkg.lock');
+          t.end();
+        });
+  
+        t.test('root pkg', (t) => {
+          t.match(pkg, {
+            name: 'path/to/pkg',
+            version: '',
+            packageFormatVersion: 'golang:0.0.1',
+          }, 'root pkg');
+          t.end();
+        });
+  
+        t.test('dependencies', (t) => {
 
-      t.test('dependencies', (t) => {
-        const deps = pkg.dependencies!;
-
-        t.match(deps['gitpub.com/food/salad'], {
-          name: 'gitpub.com/food/salad',
-          version: 'v1.3.7',
-          dependencies: {
-            'gitpub.com/nature/vegetables/tomato': {
-              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
-            },
-            'gitpub.com/nature/vegetables/cucamba': {
-              version: '#b6ffb7d62206806b573348160795ea16a00940a6',
-            },
-          },
-        }, 'salad depends on tomato and cucamba');
-
-        t.match(deps['gitpub.com/meal/dinner'], {
-          version: 'v0.0.7',
-          dependencies: {
-            'gitpub.com/food/salad': {
+            const deps = pkg!.dependencies!;
+            t.match(deps['gitpub.com/food/salad'], {
+              name: 'gitpub.com/food/salad',
               version: 'v1.3.7',
               dependencies: {
                 'gitpub.com/nature/vegetables/tomato': {
                   version: '#b6ffb7d62206806b573348160795ea16a00940a6',
                 },
+                'gitpub.com/nature/vegetables/cucamba': {
+                  version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+                },
               },
-            },
-          },
-        }, 'salad is also a trasitive dependency');
-
-        t.end();
-      });
+            }, 'salad depends on tomato and cucamba');
+    
+            t.match(deps['gitpub.com/meal/dinner'], {
+              version: 'v0.0.7',
+              dependencies: {
+                'gitpub.com/food/salad': {
+                  version: 'v1.3.7',
+                  dependencies: {
+                    'gitpub.com/nature/vegetables/tomato': {
+                      version: '#b6ffb7d62206806b573348160795ea16a00940a6',
+                    },
+                  },
+                },
+              },
+            }, 'salad is also a trasitive dependency');
+            t.end();
+        });
     });
 });
 
@@ -74,6 +77,10 @@ test('pkg with local import', (t) => {
 
   return plugin.inspect('.', 'Gopkg.lock')
     .then((result) => {
+
+      t.ok(result.plugin, 'result contains a plugin');
+      t.ok(result.package, 'result contains a depTree in package');
+      
       const plugin = result.plugin;
       const pkg = result.package;
 
@@ -114,6 +121,10 @@ test('pkg with internal subpkg', (t) => {
 
   return plugin.inspect('.', 'Gopkg.lock')
     .then((result) => {
+
+      t.ok(result.plugin, 'result contains a plugin');
+      t.ok(result.package, 'result contains a depTree in package');
+
       const plugin = result.plugin;
       const pkg = result.package;
 
@@ -154,6 +165,10 @@ test('multi-root project', (t) => {
 
   return plugin.inspect('.', 'Gopkg.lock')
     .then((result) => {
+
+      t.ok(result.plugin, 'result contains a plugin');
+      t.ok(result.package, 'result contains a depTree in package');
+
       const plugin = result.plugin;
       const pkg = result.package;
 
@@ -175,7 +190,8 @@ test('multi-root project', (t) => {
       });
 
       t.test('dependencies', (t) => {
-        const deps = pkg.dependencies!;
+        
+        const deps = pkg!.dependencies!;
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
@@ -241,6 +257,10 @@ test('multi-root project without code at root', (t) => {
 
   return plugin.inspect('.', 'Gopkg.lock')
     .then((result) => {
+
+      t.ok(result.plugin, 'result contains a plugin');
+      t.ok(result.package, 'result contains a depTree in package');
+
       const plugin = result.plugin;
       const pkg = result.package;
 
@@ -262,7 +282,7 @@ test('multi-root project without code at root', (t) => {
       });
 
       t.test('dependencies', (t) => {
-        const deps = pkg.dependencies!;
+        const deps = pkg!.dependencies!;
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
@@ -342,6 +362,10 @@ test('with external ignores', (t) => {
 
   return plugin.inspect('.', 'Gopkg.lock')
     .then((result) => {
+
+      t.ok(result.plugin, 'result contains a plugin');
+      t.ok(result.package, 'result contains a depTree in package');
+
       const plugin = result.plugin;
       const pkg = result.package;
 
@@ -363,7 +387,7 @@ test('with external ignores', (t) => {
       });
 
       t.test('dependencies', (t) => {
-        const deps = pkg.dependencies!;
+        const deps = pkg!.dependencies!;
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
@@ -407,6 +431,10 @@ test('with external ignores (govendor)', (t) => {
 
   return plugin.inspect('.', 'vendor/vendor.json')
     .then((result) => {
+
+      t.ok(result.plugin, 'result contains a plugin');
+      t.ok(result.package, 'result contains a depTree in package');
+
       const plugin = result.plugin;
       const pkg = result.package;
 
@@ -428,7 +456,7 @@ test('with external ignores (govendor)', (t) => {
       });
 
       t.test('dependencies', (t) => {
-        const deps = pkg.dependencies!;
+        const deps = pkg!.dependencies!;
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
           version: 'v1.3.7',
@@ -570,6 +598,9 @@ test('pkg without external deps', (t) => {
 
   return plugin.inspect('.', 'Gopkg.lock')
     .then((result) => {
+
+      t.ok(result.plugin, 'result contains a plugin');
+      t.ok(result.package, 'result contains a depTree in package');
       const plugin = result.plugin;
       const pkg = result.package;
 
@@ -598,6 +629,9 @@ test('happy inspect govendor', (t) => {
 
   return plugin.inspect('.', 'vendor/vendor.json')
     .then((result) => {
+
+      t.ok(result.plugin, 'result contains a plugin');
+      t.ok(result.package, 'result contains a depTree in package');
       const plugin = result.plugin;
       const pkg = result.package;
 
@@ -619,7 +653,7 @@ test('happy inspect govendor', (t) => {
       });
 
       t.test('dependencies', (t) => {
-        const deps = pkg.dependencies!;
+        const deps = pkg!.dependencies!;
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
@@ -658,6 +692,10 @@ test('inspect govendor with alternate case', (t) => {
 
   return plugin.inspect('.', 'vendor/vendor.json')
     .then((result) => {
+
+      t.ok(result.plugin, 'result contains a plugin');
+      t.ok(result.package, 'result contains a depTree in package');
+
       const plugin = result.plugin;
       const pkg = result.package;
 
@@ -684,7 +722,7 @@ test('inspect govendor with alternate case', (t) => {
       });
 
       t.test('dependencies', (t) => {
-        const deps = pkg.dependencies!;
+        const deps = pkg!.dependencies!;
 
         t.match(deps['gitpub.com/food/salad'], {
           name: 'gitpub.com/food/salad',
@@ -741,8 +779,12 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
     );
 
     let result = await plugin.inspect('.', 'go.mod');
+
+    t.ok(result.plugin, 'result contains a plugin');
+    t.ok(result.dependencyGraph, 'result contains a dependencyGraph');
+
     const pluginInfo = result.plugin;
-    const pkg = result.package;
+    const pkg = result.dependencyGraph;
 
     t.test('plugin', async (t) => {
       t.ok(plugin, 'plugin');
@@ -751,10 +793,9 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       t.equal(pluginInfo.targetFile, 'go.mod');
     });
 
-    t.test('package', async (t) => {
-      const expectedDepTree = JSON.parse(load('gomod-small/expected-tree.json'));
-
-      t.deepEquals(pkg, expectedDepTree);
+    t.test('dependencyGraph', async (t) => {
+     const expectedDepGraph = JSON.parse(load('gomod-small/expected-gomodules-depgraph.json'));
+     t.deepEquals(JSON.stringify(pkg), JSON.stringify(expectedDepGraph));
     });
   });
 
@@ -768,7 +809,7 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
 
     let result = await plugin.inspect('.', 'gomod-small/go.mod', { file: 'gomod-small/go.mod' });
     const pluginInfo = result.plugin;
-    const pkg = result.package;
+    const pkg = result.dependencyGraph;
 
     t.test('plugin', async (t) => {
       t.ok(plugin, 'plugin');
@@ -777,11 +818,10 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       t.equal(pluginInfo.targetFile, 'gomod-small/go.mod');
     });
 
-    t.test('package', async (t) => {
-      const expectedDepTree = JSON.parse(load('gomod-small/expected-tree.json'));
-
-      t.deepEquals(pkg, expectedDepTree);
-    });
+    t.test('dependencyGraph', async (t) => {
+      const expectedDepGraph = JSON.parse(load('gomod-small/expected-gomodules-depgraph.json'));
+      t.deepEquals(JSON.stringify(pkg), JSON.stringify(expectedDepGraph));
+     });
   });
 
   test('invalid go.mod', {timeout: 120000}, async (t) => {

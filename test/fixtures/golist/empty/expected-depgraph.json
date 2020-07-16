@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.2.0",
+  "pkgManager": { "name": "gomodules" },
+  "pkgs": [
+    { "id": "empty@0.0.0", "info": { "name": "empty", "version": "0.0.0" } }
+  ],
+  "graph": {
+    "rootNodeId": "root-node",
+    "nodes": [{ "nodeId": "root-node", "pkgId": "empty@0.0.0", "deps": [] }]
+  }
+}
