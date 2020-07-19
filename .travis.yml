@@ -3,6 +3,7 @@ sudo: false
 notifications:
   email: false
 language: node_js
+# We support Node v8+, Go v1.10+
 node_js:
   - "12"
   - "10"
