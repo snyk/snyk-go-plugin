@@ -1,8 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as graphlib from '@snyk/graphlib';
 import * as tmp from 'tmp';
 import debugLib = require('debug');
+import * as graphlib from '@snyk/graphlib';
+import { DepGraphBuilder, DepGraph } from '@snyk/dep-graph';
 
 import * as subProcess from './sub-process';
 import { CustomError } from './errors/custom-error';
@@ -45,10 +46,25 @@ export async function inspect(root, targetFile, options: Options = {}) {
     getMetaData(root, targetFile),
     getDependencies(root, targetFile),
   ]);
-  return {
-    plugin: result[0],
-    package: result[1],
-  };
+
+  const hasDepGraph = result[1].dependencyGraph && !result[1].dependencyTree;
+  const hasDepTree = !result[1].dependencyGraph && result[1].dependencyTree;
+
+  //TODO @boost: get rid of the rest of depTree and fully convert this plugin to use depGraph
+  if(hasDepGraph) {
+    return {
+      plugin: result[0],
+      dependencyGraph: result[1].dependencyGraph
+    }
+  } else if(hasDepTree) {
+    return {
+      plugin: result[0],
+      package: result[1].dependencyTree
+    }
+  }
+
+  //TODO @boost: remove me
+  throw new Error('Failed to scan this go project.');
 }
 
 async function getMetaData(root, targetFile) {
@@ -128,7 +144,7 @@ async function getDependencies(root, targetFile) {
   let tempDirObj;
   const packageManager = pkgManagerByTarget(targetFile);
   if (packageManager === 'gomodules') {
-    return buildDepTreeFromImportsAndModules(root, targetFile);
+    return { dependencyGraph: await buildDepGraphFromImportsAndModules(root, targetFile)};
   }
 
   try {
@@ -187,7 +203,7 @@ async function getDependencies(root, targetFile) {
     pkgsTree.packageFormatVersion = 'golang:0.0.1';
     debug('done building dep-tree', {rootPkgName: pkgsTree.name});
 
-    return pkgsTree;
+    return { dependencyTree: pkgsTree };
   } catch (error) {
     if (tempDirObj) {
       tempDirObj.removeCallback();
@@ -450,22 +466,22 @@ interface GoPackagesByName {
   [name: string]: GoPackage;
 }
 
-// TODO(kyegupov): move to a separate file
-export async function buildDepTreeFromImportsAndModules(root: string = '.', targetFile: string = 'go.mod') {
+export async function buildDepGraphFromImportsAndModules(root: string = '.', targetFile: string = 'go.mod'): Promise<DepGraph> {
 
   // TODO(BST-657): parse go.mod file to obtain root module name and go version
+  const projectName = path.basename(root); // The correct name should come from the `go list` command
+  const projectVersion = '0.0.0'; // TODO(BST-657): try `git describe`?
 
-  const depTree: DepTree = {
-    name: path.basename(root), // The correct name should come from the `go list` command
-    version: '0.0.0', // TODO(BST-657): try `git describe`?
-    packageFormatVersion: 'golang:0.0.1',
-  };
+  let depGraphBuilder = new DepGraphBuilder({ name: 'gomodules' }, {
+    name: projectName,
+    version: projectVersion,
+  });
 
   let goDepsOutput: string;
+
   try {
     const goModAbsolutPath = path.resolve(root, path.dirname(targetFile));
     goDepsOutput = await subProcess.execute('go list', ['-json', '-deps', './...'], { cwd: goModAbsolutPath } );
-
   } catch (err) {
     const userError = new CustomError(err);
     userError.userMessage = "'go list -json -deps ./...' command failed with error: " + userError.message;
@@ -473,8 +489,9 @@ export async function buildDepTreeFromImportsAndModules(root: string = '.', targ
   }
 
   if (goDepsOutput.includes('matched no packages')) {
-    return depTree;
+    return depGraphBuilder.build();
   }
+
   const goDepsString = `[${goDepsOutput.replace(/}\r?\n{/g, '},{')}]`;
   const goDeps: GoPackage[] = JSON.parse(goDepsString);
   const packagesByName: GoPackagesByName = {};
@@ -486,20 +503,27 @@ export async function buildDepTreeFromImportsAndModules(root: string = '.', targ
   const localPackageWithMainModule = localPackages
       .find((localPackage) => !!(localPackage.Module && localPackage.Module.Main));
   if (localPackageWithMainModule && localPackageWithMainModule!.Module!.Path) {
-    depTree.name = localPackageWithMainModule!.Module!.Path;
+    depGraphBuilder = new DepGraphBuilder({ name: 'gomodules' }, {
+      name: localPackageWithMainModule!.Module!.Path,
+      version: projectVersion,
+    });
   }
-
   const topLevelDeps = extractAllImports(localPackages);
-  buildTree(depTree, topLevelDeps, packagesByName);
-  return depTree;
+  
+  const childrenChain = new Map();
+  const ancestorsChain = new Map();
+
+  buildGraph(depGraphBuilder, topLevelDeps, packagesByName, 'root-node', childrenChain, ancestorsChain);
+
+  return depGraphBuilder.build();
 }
 
-function buildTree(
-  depTreeNode: DepTree,
+function buildGraph(depGraphBuilder: DepGraphBuilder,
   depPackages: string[],
-  packagesByName: GoPackagesByName,
-) {
+  packagesByName: GoPackagesByName, currentParent: string, childrenChain: Map<string, Array<string>>, ancestorsChain: Map<string, Array<string>>) {
+  
   const depPackagesLen = depPackages.length;
+
   for (let i = depPackagesLen - 1; i >= 0; i--) {
     const packageImport = depPackages[i];
     let version = 'unknown';
@@ -509,21 +533,39 @@ function buildTree(
     } else if (!packagesByName[packageImport].DepOnly) {
       // Do not include packages of this module
       continue;
-    } else {
-      const pkg = packagesByName[packageImport]!;
-      if (pkg.Module && pkg.Module.Version) {
-        version = toSnykVersion(parseVersion(pkg.Module.Version));
-      }
+    }
+
+    const pkg = packagesByName[packageImport]!;
+    if (pkg.Module && pkg.Module.Version) {
+      // get hash (prefixed with #) or version (with v prefix removed)
+      version = toSnykVersion(parseVersion(pkg.Module.Version));
+    }
+    
+    if(currentParent && packageImport) {
+     
       const newNode = {
         name: packageImport,
         version,
       };
-      if (!depTreeNode.dependencies) {
-        depTreeNode.dependencies = {};
+
+      const currentChildren = childrenChain.get(currentParent) || [];
+      const currentAncestors = ancestorsChain.get(currentParent) || [];
+      const isAncestorOrChild = currentChildren.includes(packageImport) || currentAncestors.includes(packageImport);
+
+      //@TODO boost: breaking cycles,  re-work once dep-graph lib can handle cycles
+      if(packageImport === currentParent || isAncestorOrChild) {
+        continue;
       }
-      depTreeNode.dependencies![packageImport] = newNode;
-      if (packagesByName[packageImport].Imports) {
-        buildTree(newNode, packagesByName[packageImport].Imports!, packagesByName);
+
+      depGraphBuilder.addPkgNode(newNode, packageImport);
+      depGraphBuilder.connectDep(currentParent, packageImport);
+
+      childrenChain.set(currentParent, [...currentChildren, packageImport]);
+      ancestorsChain.set(packageImport, [...currentAncestors, currentParent]);
+  
+      const transitives = packagesByName[packageImport].Imports! || [];
+      if (transitives.length > 0) {
+        buildGraph(depGraphBuilder, transitives, packagesByName, packageImport, childrenChain, ancestorsChain);
       }
     }
   }

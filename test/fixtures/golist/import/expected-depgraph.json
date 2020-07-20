@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.2.0",
+  "pkgManager": { "name": "gomodules" },
+  "pkgs": [
+    {
+      "id": "github.com/snyk/go-deps-resolver@0.0.0",
+      "info": { "name": "github.com/snyk/go-deps-resolver", "version": "0.0.0" }
+    }
+  ],
+  "graph": {
+    "rootNodeId": "root-node",
+    "nodes": [
+      {
+        "nodeId": "root-node",
+        "pkgId": "github.com/snyk/go-deps-resolver@0.0.0",
+        "deps": []
+      }
+    ]
+  }
+}

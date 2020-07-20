@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { buildDepTreeFromImportsAndModules } from '../lib';
+import { buildDepGraphFromImportsAndModules } from '../lib';
 import { goVersion } from './go-version';
 import { test } from 'tap';
 
@@ -9,36 +9,34 @@ const load = (filename: string) =>
 if (goVersion[0] > 1 || goVersion[1] >= 12) {
 
   test('go list parsing', (t) => {
-    t.test('produces dependency tree', async (t) => {
-      // Note that this "tree" has no dependencies, because all the imported packages are either local or builtin.
-      const expectedDepTree = JSON.parse(load('golist/import/expected-tree.json'));
-      const depTreeAndNotice = await buildDepTreeFromImportsAndModules(`${__dirname}/fixtures/golist/import`);
-      t.deepEquals(depTreeAndNotice, expectedDepTree);
+    t.test('produces dependency graph', async (t) => {
+      // Note that this "graph" has no edges/deps, because all the imported packages are either local or builtin.
+      const expectedDepGraph = JSON.parse(load('golist/import/expected-depgraph.json'));
+      const depGraphAndNotice = await buildDepGraphFromImportsAndModules(`${__dirname}/fixtures/golist/import`);
+      t.deepEquals(JSON.stringify(depGraphAndNotice), JSON.stringify(expectedDepGraph));
     });
 
-    t.test('without .go files produces empty tree', async (t) => {
-      const expectedDepTree = JSON.parse(load('golist/empty/expected-tree.json'));
-      const depTreeAndNotice = await buildDepTreeFromImportsAndModules(`${__dirname}/fixtures/golist/empty`);
-      t.deepEquals(depTreeAndNotice, expectedDepTree);
+    t.test('without .go files produces empty graph', async (t) => {
+      const expectedDepGraph = JSON.parse(load('golist/empty/expected-depgraph.json'));
+      const depGraphAndNotice = await buildDepGraphFromImportsAndModules(`${__dirname}/fixtures/golist/empty`);
+     t.deepEquals(JSON.stringify(depGraphAndNotice), JSON.stringify(expectedDepGraph));
     });
 
     t.end();
   });
 
   test('go list parsing with module information', (t) => {
-    t.test('produces dependency tree', async (t) => {
-      const expectedDepTree = JSON.parse(load('gomod-small/expected-tree.json'));
-      const depTreeAndNotice = await buildDepTreeFromImportsAndModules(`${__dirname}/fixtures/gomod-small`);
-      t.deepEquals(depTreeAndNotice, expectedDepTree);
+    t.test('produces dependency graph', async (t) => {
+      const expectedDepGraph = JSON.parse(load('gomod-small/expected-gomodules-depgraph.json'));
+      const depGraphAndNotice = await buildDepGraphFromImportsAndModules(`${__dirname}/fixtures/gomod-small`);
+      t.deepEquals(JSON.stringify(depGraphAndNotice), JSON.stringify(expectedDepGraph));
     });
-
     t.end();
   });
 
 } else {
-
   test('go list parsing with module information', (t) => {
-    t.rejects('throws on older Go versions', buildDepTreeFromImportsAndModules(`${__dirname}/fixtures/gomod-small`));
+    t.rejects('throws on older Go versions', buildDepGraphFromImportsAndModules(`${__dirname}/fixtures/gomod-small`));
     t.end();
   });
 }
