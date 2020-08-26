@@ -74,7 +74,7 @@ commands:
     steps:
       - run:
           name: Installing Go
-          command: choco install golang --version << parameters.go_version >>
+          command: choco install golang --version << parameters.go_version >> --allow-downgrade
 
 jobs:
   lint:
