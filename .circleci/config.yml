@@ -121,15 +121,14 @@ jobs:
     docker:
       - image: circleci/node:<< parameters.node_version >>
     environment:
-      GRADLE_VERSION: << parameters.gradle_version >>
-      JDK: << parameters.go_version >>
+      GO_VERSION: << parameters.go_version >>
     steps:
       - checkout
       - install_gvm:
+      - show_go_version
       - install_go_unix:
           go_version: << parameters.go_version >>
       - install_deps
-      - show_go_version
       - show_node_version
       - run:
           name: Run tests
