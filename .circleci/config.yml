@@ -124,7 +124,7 @@ jobs:
       GO_VERSION: << parameters.go_version >>
     steps:
       - checkout
-      - install_gvm:
+      - install_gvm_unix:
       - show_go_version
       - install_go_unix:
           go_version: << parameters.go_version >>
