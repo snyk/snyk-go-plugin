@@ -48,32 +48,23 @@ commands:
       - run:
           name: NPM version
           command: npm --version
-  install_gvm_unix:
-    steps:
-      - run:
-          name: Install GVM
-          command: |
-              bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer) ; fi
-              source $HOME/.gvm/scripts/gvm; gvm install go${GO_VERSION} --binary
   install_go_unix:
-    description: Install Go
+    description: Install Go binaries
     parameters:
       go_version:
         type: string
         default: ""
     steps:
+      - restore_cache:
+          key: v1-go-license-collector-install-go-{{ checksum "scripts/install-go.sh" }}
       - run:
-          name: Installing Go
-          command: gvm install go<< parameters.go_version >>
-  show_go_version:
-    description: Log Go and gvm version
-    steps:
-      - run:
-          name: Go version
-          command: go --version
-      - run:
-          name: GVM version
-          command: gvm --version
+          name: Install Go
+          command: scripts/install-go.sh
+      - save_cache:
+          key: v1-go-license-collector-install-go-{{ checksum "scripts/install-go.sh" }}
+          paths:
+            - /usr/local/go
+            - /usr/local/bin/go
   install_go_windows:
     description: Install Go
     parameters:
@@ -124,8 +115,6 @@ jobs:
       GO_VERSION: << parameters.go_version >>
     steps:
       - checkout
-      - install_gvm_unix:
-      - show_go_version
       - install_go_unix:
           go_version: << parameters.go_version >>
       - install_deps
