@@ -218,9 +218,9 @@ workflows:
             ignore:
               - master
     - test-unix:
-        name: Unix Tests for Go=1.14.0 Node=8
+        name: Unix Tests for Go=1.14 Node=8
         context: nodejs-install
-        go_version: "1.14.0"
+        go_version: "1.14"
         node_version: "8"
         requires:
           - Lint
@@ -229,9 +229,9 @@ workflows:
             ignore:
               - master
     - test-unix:
-        name: Unix Tests for Go=1.14.0 Node=10
+        name: Unix Tests for Go=1.14 Node=10
         context: nodejs-install
-        go_version: "1.14.0"
+        go_version: "1.14"
         node_version: "8"
         requires:
           - Lint
@@ -240,9 +240,9 @@ workflows:
             ignore:
               - master
     - test-unix:
-        name: Unix Tests for Go=1.14.0 Node=12
+        name: Unix Tests for Go=1.14 Node=12
         context: nodejs-install
-        go_version: "1.14.0"
+        go_version: "1.14"
         node_version: "8"
         requires:
           - Lint
@@ -319,9 +319,9 @@ workflows:
             ignore:
               - master
     - test-windows:
-        name: Windows Tests for Go=1.14.0 Node=8
+        name: Windows Tests for Go=1.14 Node=8
         context: nodejs-install
-        go_version: "1.14.0"
+        go_version: "1.14"
         node_version: "8.17.0"
         requires:
           - Lint
@@ -330,9 +330,9 @@ workflows:
             ignore:
               - master
     - test-windows:
-        name: Windows Tests for Go=1.14.0 Node=10
+        name: Windows Tests for Go=1.14 Node=10
         context: nodejs-install
-        go_version: "1.14.0"
+        go_version: "1.14"
         node_version: "10.21.0"
         requires:
           - Lint
@@ -341,9 +341,9 @@ workflows:
             ignore:
               - master
     - test-windows:
-        name: Windows Tests for Go=1.14.0 Node=12
+        name: Windows Tests for Go=1.14 Node=12
         context: nodejs-install
-        go_version: "1.14.0"
+        go_version: "1.14"
         node_version: "12.0.0"
         requires:
           - Lint
