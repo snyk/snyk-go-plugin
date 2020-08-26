@@ -9,7 +9,7 @@ set -o errexit
 # Use the error status of the first failure, rather than that of the last item in a pipeline.
 set -o pipefail
 
-
+curl -o go${GO_VERSION}.linux-amd64.tar.gz https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
 ARCHIVE_FILE="go${GO_VERSION}.linux-amd64.tar.gz"
 TARGET_PATH="/usr/local/go"
 
