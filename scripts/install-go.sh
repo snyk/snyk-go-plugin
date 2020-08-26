@@ -25,9 +25,9 @@ mkdir ~/go-install-temp
 cd ~/go-install-temp
 
 # download and validate checksum
-curl -k -s -o "${ARCHIVE_FILE}" "https://dl.google.com/go/${ARCHIVE_FILE}"
+# curl -k -s -o "${ARCHIVE_FILE}" "https://dl.google.com/go/${ARCHIVE_FILE}"
 # echo "512103d7ad296467814a6e3f635631bd35574cab3369a97a323c9a585ccaa569  ${ARCHIVE_FILE}" > "${ARCHIVE_FILE}.sha256"
-sha256sum -c "${ARCHIVE_FILE}.sha256"
+# sha256sum -c "${ARCHIVE_FILE}.sha256"
 
 # unpack and install
 tar xf "${ARCHIVE_FILE}"
