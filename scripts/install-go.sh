@@ -9,7 +9,7 @@ set -o errexit
 # Use the error status of the first failure, rather than that of the last item in a pipeline.
 set -o pipefail
 
-curl -o https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
+curl https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz
 ARCHIVE_FILE="go${GO_VERSION}.linux-amd64.tar.gz"
 TARGET_PATH="/usr/local/go"
 
@@ -26,7 +26,7 @@ cd ~/go-install-temp
 
 # download and validate checksum
 # curl -k -s -o "${ARCHIVE_FILE}" "https://dl.google.com/go/${ARCHIVE_FILE}"
-# echo "512103d7ad296467814a6e3f635631bd35574cab3369a97a323c9a585ccaa569  ${ARCHIVE_FILE}" > "${ARCHIVE_FILE}.sha256"
+# echo "shasum -a 256  ${ARCHIVE_FILE}" > "${ARCHIVE_FILE}.sha256"
 # sha256sum -c "${ARCHIVE_FILE}.sha256"
 
 # unpack and install
