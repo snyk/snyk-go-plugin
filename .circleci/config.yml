@@ -55,16 +55,16 @@ commands:
         type: string
         default: ""
     steps:
-      - restore_cache:
-          key: v1-go-license-collector-install-go-{{ checksum "scripts/install-go.sh" }}
+      # - restore_cache:
+      #     key: v1-snyk-go-plugin-install-go-{{ checksum "scripts/install-go.sh" }}
       - run:
           name: Install Go
           command: scripts/install-go.sh
-      - save_cache:
-          key: v1-go-license-collector-install-go-{{ checksum "scripts/install-go.sh" }}
-          paths:
-            - /usr/local/go
-            - /usr/local/bin/go
+      # - save_cache:
+      #     key: v1-snyk-go-plugin-install-go-{{ checksum "scripts/install-go.sh" }}
+      #     paths:
+      #       - /usr/local/go
+      #       - /usr/local/bin/go
   install_go_windows:
     description: Install Go
     parameters:
@@ -162,195 +162,195 @@ workflows:
           branches:
             ignore:
               - master
-    - test-unix:
-        name: Unix Tests for Go=1.10.8 Node=10
-        context: nodejs-install
-        go_version: "1.10.8"
-        node_version: "8"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-unix:
-        name: Unix Tests for Go=1.10.8 Node=12
-        context: nodejs-install
-        go_version: "1.10.8"
-        node_version: "8"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-unix:
-        name: Unix Tests for Go=1.13.3 Node=8
-        context: nodejs-install
-        go_version: "1.13.3"
-        node_version: "8"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-unix:
-        name: Unix Tests for Go=1.13.3 Node=10
-        context: nodejs-install
-        go_version: "1.13.3"
-        node_version: "8"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-unix:
-        name: Unix Tests for Go=1.13.3 Node=12
-        context: nodejs-install
-        go_version: "1.13.3"
-        node_version: "8"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-unix:
-        name: Unix Tests for Go=1.14 Node=8
-        context: nodejs-install
-        go_version: "1.14"
-        node_version: "8"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-unix:
-        name: Unix Tests for Go=1.14 Node=10
-        context: nodejs-install
-        go_version: "1.14"
-        node_version: "8"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-unix:
-        name: Unix Tests for Go=1.14 Node=12
-        context: nodejs-install
-        go_version: "1.14"
-        node_version: "8"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
+    # - test-unix:
+    #     name: Unix Tests for Go=1.10.8 Node=10
+    #     context: nodejs-install
+    #     go_version: "1.10.8"
+    #     node_version: "8"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-unix:
+    #     name: Unix Tests for Go=1.10.8 Node=12
+    #     context: nodejs-install
+    #     go_version: "1.10.8"
+    #     node_version: "8"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-unix:
+    #     name: Unix Tests for Go=1.13.3 Node=8
+    #     context: nodejs-install
+    #     go_version: "1.13.3"
+    #     node_version: "8"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-unix:
+    #     name: Unix Tests for Go=1.13.3 Node=10
+    #     context: nodejs-install
+    #     go_version: "1.13.3"
+    #     node_version: "8"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-unix:
+    #     name: Unix Tests for Go=1.13.3 Node=12
+    #     context: nodejs-install
+    #     go_version: "1.13.3"
+    #     node_version: "8"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-unix:
+    #     name: Unix Tests for Go=1.14 Node=8
+    #     context: nodejs-install
+    #     go_version: "1.14"
+    #     node_version: "8"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-unix:
+    #     name: Unix Tests for Go=1.14 Node=10
+    #     context: nodejs-install
+    #     go_version: "1.14"
+    #     node_version: "8"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-unix:
+    #     name: Unix Tests for Go=1.14 Node=12
+    #     context: nodejs-install
+    #     go_version: "1.14"
+    #     node_version: "8"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
 
-    # Windows
-    - test-windows:
-        name: Windows Tests for Go=8 Node=8
-        context: nodejs-install
-        go_version: "1.10.8"
-        node_version: "8.17.0"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-windows:
-        name: Windows Tests for Go=8 Node=10
-        context: nodejs-install
-        go_version: "1.10.8"
-        node_version: "10.21.0"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-windows:
-        name: Windows Tests for Go=8 Node=12
-        context: nodejs-install
-        go_version: "1.10.8"
-        node_version: "12.0.0"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-windows:
-        name: Windows Tests for Go=1.13.3 Node=8
-        context: nodejs-install
-        go_version: "1.13.3"
-        node_version: "8.17.0"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-windows:
-        name: Windows Tests for Go=1.13.3 Node=10
-        context: nodejs-install
-        go_version: "1.13.3"
-        node_version: "10.21.0"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-windows:
-        name: Windows Tests for Go=1.13.3 Node=12
-        context: nodejs-install
-        go_version: "1.13.3"
-        node_version: "12.0.0"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-windows:
-        name: Windows Tests for Go=1.14 Node=8
-        context: nodejs-install
-        go_version: "1.14"
-        node_version: "8.17.0"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-windows:
-        name: Windows Tests for Go=1.14 Node=10
-        context: nodejs-install
-        go_version: "1.14"
-        node_version: "10.21.0"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
-    - test-windows:
-        name: Windows Tests for Go=1.14 Node=12
-        context: nodejs-install
-        go_version: "1.14"
-        node_version: "12.0.0"
-        requires:
-          - Lint
-        filters:
-          branches:
-            ignore:
-              - master
+    # # Windows
+    # - test-windows:
+    #     name: Windows Tests for Go=8 Node=8
+    #     context: nodejs-install
+    #     go_version: "1.10.8"
+    #     node_version: "8.17.0"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-windows:
+    #     name: Windows Tests for Go=8 Node=10
+    #     context: nodejs-install
+    #     go_version: "1.10.8"
+    #     node_version: "10.21.0"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-windows:
+    #     name: Windows Tests for Go=8 Node=12
+    #     context: nodejs-install
+    #     go_version: "1.10.8"
+    #     node_version: "12.0.0"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-windows:
+    #     name: Windows Tests for Go=1.13.3 Node=8
+    #     context: nodejs-install
+    #     go_version: "1.13.3"
+    #     node_version: "8.17.0"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-windows:
+    #     name: Windows Tests for Go=1.13.3 Node=10
+    #     context: nodejs-install
+    #     go_version: "1.13.3"
+    #     node_version: "10.21.0"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-windows:
+    #     name: Windows Tests for Go=1.13.3 Node=12
+    #     context: nodejs-install
+    #     go_version: "1.13.3"
+    #     node_version: "12.0.0"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-windows:
+    #     name: Windows Tests for Go=1.14 Node=8
+    #     context: nodejs-install
+    #     go_version: "1.14"
+    #     node_version: "8.17.0"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-windows:
+    #     name: Windows Tests for Go=1.14 Node=10
+    #     context: nodejs-install
+    #     go_version: "1.14"
+    #     node_version: "10.21.0"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
+    # - test-windows:
+    #     name: Windows Tests for Go=1.14 Node=12
+    #     context: nodejs-install
+    #     go_version: "1.14"
+    #     node_version: "12.0.0"
+    #     requires:
+    #       - Lint
+    #     filters:
+    #       branches:
+    #         ignore:
+    #           - master
 
     # Release
     - release:
