@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as tmp from 'tmp';
 import debugLib = require('debug');
-import * as graphlib from '@snyk/graphlib';
+import * as graphlib from 'graphlib';
 import { DepGraphBuilder, DepGraph } from '@snyk/dep-graph';
 
 import * as subProcess from './sub-process';
