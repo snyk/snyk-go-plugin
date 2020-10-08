@@ -50,10 +50,10 @@ commands:
           command: npm --version
   install_go_unix:
     description: Install Go binaries
-    parameters:
-      go_version:
-        type: string
-        default: ""
+    # parameters:
+    #   go_version:
+    #     type: string
+    #     default: ""
     steps:
       # - restore_cache:
       #     key: v1-snyk-go-plugin-install-go-{{ checksum "scripts/install-go.sh" }}
