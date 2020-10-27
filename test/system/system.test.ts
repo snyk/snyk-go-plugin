@@ -1,9 +1,11 @@
 var test = require('tap').test;
 var path = require('path');
 var fs = require('fs');
+import * as os from 'os';
 
 var plugin = require('../../lib');
 var subProcess = require('../../lib/sub-process');
+const isRunningOnWindows = os.platform() === 'win32';
 
 test('install dep', {timeout: 120 * 1000}, function () {
   chdirToPkg([]);
@@ -30,11 +32,12 @@ test('prometheus 1.8', (t) => {
     'v1.8.0',
     'prometheus'
   ).then(function () {
+    const expectedPromDeps = isRunningOnWindows ? 'prometheus-ms-expected-list.json' : 'prometheus-unix-expected-list.json'
     return testPkg(t,
       ['github.com', 'prometheus', 'prometheus', 'cmd', 'prometheus'],
       ['..', '..', 'vendor', 'vendor.json'].join(path.sep),
       ['..', '..', '..',
-        'prometheus-cmd-prometheus-expected-list.json'].join(path.sep)
+        expectedPromDeps].join(path.sep)
     );
   });
 });
