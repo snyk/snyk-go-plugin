@@ -172,6 +172,9 @@ workflows:
           name: Release
           context: nodejs-app-release
           node_version: "10"
+          requires:
+            - test-unix
+            - test-windows
           filters:
             branches:
               only:
