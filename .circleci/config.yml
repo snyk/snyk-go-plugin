@@ -130,8 +130,6 @@ jobs:
     <<: *defaults
     docker:
       - image: circleci/node:<< parameters.node_version >>
-    environment:
-      NODE_ENV: "production"
     resource_class: small
     steps:
       - checkout
