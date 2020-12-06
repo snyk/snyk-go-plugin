@@ -151,7 +151,7 @@
                 },
                 "github.com/rivo/uniseg": {
                     "name": "github.com/rivo/uniseg",
-                    "version": "#b9f5b9457d44"
+                    "version": "v0.0.0-20190513083848-b9f5b9457d44"
                 }
             }
         },

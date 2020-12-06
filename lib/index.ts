@@ -9,7 +9,7 @@ import * as subProcess from './sub-process';
 import { CustomError } from './errors/custom-error';
 
 import {
-  parseGoPkgConfig, parseGoVendorConfig, GoPackageManagerType, GoProjectConfig, toSnykVersion, parseVersion,
+  parseGoPkgConfig, parseGoVendorConfig, GoPackageManagerType, GoPackageConfig,
 } from 'snyk-go-parser';
 
 const debug = debugLib('snyk-go-plugin');
@@ -361,7 +361,7 @@ interface DepManifest {
   ignored: string[];
 }
 
-function parseConfig(root, targetFile): GoProjectConfig {
+function parseConfig(root, targetFile): GoPackageConfig {
   const pkgManager = pkgManagerByTarget(targetFile);
   debug('detected package-manager:', pkgManager);
   switch (pkgManager) {
@@ -543,7 +543,7 @@ function buildGraph(depGraphBuilder: DepGraphBuilder,
     const pkg = packagesByName[packageImport]!;
     if (pkg.Module && pkg.Module.Version) {
       // get hash (prefixed with #) or version (with v prefix removed)
-      version = toSnykVersion(parseVersion(pkg.Module.Version));
+      version = pkg.Module.Version;
     }
 
     if (currentParent && packageImport) {

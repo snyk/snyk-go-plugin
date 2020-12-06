@@ -1,74 +1,106 @@
 {
   "schemaVersion": "1.2.0",
-  "pkgManager": { "name": "gomodules" },
+  "pkgManager": {
+    "name": "gomodules"
+  },
   "pkgs": [
     {
       "id": "github.com/antonmedv/expr@0.0.0",
-      "info": { "name": "github.com/antonmedv/expr", "version": "0.0.0" }
+      "info": {
+        "name": "github.com/antonmedv/expr",
+        "version": "0.0.0"
+      }
     },
     {
-      "id": "github.com/sanity-io/litter@1.1.0",
-      "info": { "name": "github.com/sanity-io/litter", "version": "1.1.0" }
+      "id": "github.com/sanity-io/litter@v1.1.0",
+      "info": {
+        "name": "github.com/sanity-io/litter",
+        "version": "v1.1.0"
+      }
     },
     {
-      "id": "github.com/rivo/tview@#bd836ef13b4b",
-      "info": { "name": "github.com/rivo/tview", "version": "#bd836ef13b4b" }
+      "id": "github.com/rivo/tview@v0.0.0-20190515161233-bd836ef13b4b",
+      "info": {
+        "name": "github.com/rivo/tview",
+        "version": "v0.0.0-20190515161233-bd836ef13b4b"
+      }
     },
     {
-      "id": "github.com/rivo/uniseg@#b9f5b9457d44",
-      "info": { "name": "github.com/rivo/uniseg", "version": "#b9f5b9457d44" }
+      "id": "github.com/rivo/uniseg@v0.0.0-20190513083848-b9f5b9457d44",
+      "info": {
+        "name": "github.com/rivo/uniseg",
+        "version": "v0.0.0-20190513083848-b9f5b9457d44"
+      }
     },
     {
-      "id": "github.com/mattn/go-runewidth@0.0.4",
-      "info": { "name": "github.com/mattn/go-runewidth", "version": "0.0.4" }
+      "id": "github.com/mattn/go-runewidth@v0.0.4",
+      "info": {
+        "name": "github.com/mattn/go-runewidth",
+        "version": "v0.0.4"
+      }
     },
     {
-      "id": "github.com/lucasb-eyer/go-colorful@1.0.2",
+      "id": "github.com/lucasb-eyer/go-colorful@v1.0.2",
       "info": {
         "name": "github.com/lucasb-eyer/go-colorful",
-        "version": "1.0.2"
+        "version": "v1.0.2"
       }
     },
     {
-      "id": "github.com/gdamore/tcell@1.1.2",
-      "info": { "name": "github.com/gdamore/tcell", "version": "1.1.2" }
+      "id": "github.com/gdamore/tcell@v1.1.2",
+      "info": {
+        "name": "github.com/gdamore/tcell",
+        "version": "v1.1.2"
+      }
     },
     {
-      "id": "golang.org/x/text/transform@0.3.2",
-      "info": { "name": "golang.org/x/text/transform", "version": "0.3.2" }
+      "id": "golang.org/x/text/transform@v0.3.2",
+      "info": {
+        "name": "golang.org/x/text/transform",
+        "version": "v0.3.2"
+      }
     },
     {
-      "id": "golang.org/x/text/encoding@0.3.2",
-      "info": { "name": "golang.org/x/text/encoding", "version": "0.3.2" }
+      "id": "golang.org/x/text/encoding@v0.3.2",
+      "info": {
+        "name": "golang.org/x/text/encoding",
+        "version": "v0.3.2"
+      }
     },
     {
-      "id": "golang.org/x/text/encoding/internal/identifier@0.3.2",
+      "id": "golang.org/x/text/encoding/internal/identifier@v0.3.2",
       "info": {
         "name": "golang.org/x/text/encoding/internal/identifier",
-        "version": "0.3.2"
+        "version": "v0.3.2"
       }
     },
     {
-      "id": "github.com/gdamore/tcell/terminfo@1.1.2",
+      "id": "github.com/gdamore/tcell/terminfo@v1.1.2",
       "info": {
         "name": "github.com/gdamore/tcell/terminfo",
-        "version": "1.1.2"
+        "version": "v1.1.2"
       }
     },
     {
-      "id": "github.com/gdamore/encoding@1.0.0",
-      "info": { "name": "github.com/gdamore/encoding", "version": "1.0.0" }
+      "id": "github.com/gdamore/encoding@v1.0.0",
+      "info": {
+        "name": "github.com/gdamore/encoding",
+        "version": "v1.0.0"
+      }
     },
     {
-      "id": "github.com/antlr/antlr4/runtime/Go/antlr@#edae2a1c9b4b",
+      "id": "github.com/antlr/antlr4/runtime/Go/antlr@v0.0.0-20190518164840-edae2a1c9b4b",
       "info": {
         "name": "github.com/antlr/antlr4/runtime/Go/antlr",
-        "version": "#edae2a1c9b4b"
+        "version": "v0.0.0-20190518164840-edae2a1c9b4b"
       }
     },
     {
-      "id": "golang.org/x/text/width@0.3.2",
-      "info": { "name": "golang.org/x/text/width", "version": "0.3.2" }
+      "id": "golang.org/x/text/width@v0.3.2",
+      "info": {
+        "name": "golang.org/x/text/width",
+        "version": "v0.3.2"
+      }
     }
   ],
   "graph": {
@@ -78,95 +110,137 @@
         "nodeId": "root-node",
         "pkgId": "github.com/antonmedv/expr@0.0.0",
         "deps": [
-          { "nodeId": "github.com/sanity-io/litter" },
-          { "nodeId": "github.com/rivo/tview" },
-          { "nodeId": "github.com/gdamore/tcell" },
-          { "nodeId": "github.com/antlr/antlr4/runtime/Go/antlr" },
-          { "nodeId": "golang.org/x/text/width" }
+          {
+            "nodeId": "github.com/sanity-io/litter"
+          },
+          {
+            "nodeId": "github.com/rivo/tview"
+          },
+          {
+            "nodeId": "github.com/gdamore/tcell"
+          },
+          {
+            "nodeId": "github.com/antlr/antlr4/runtime/Go/antlr"
+          },
+          {
+            "nodeId": "golang.org/x/text/width"
+          }
         ]
       },
       {
         "nodeId": "github.com/sanity-io/litter",
-        "pkgId": "github.com/sanity-io/litter@1.1.0",
+        "pkgId": "github.com/sanity-io/litter@v1.1.0",
         "deps": []
       },
       {
         "nodeId": "github.com/rivo/tview",
-        "pkgId": "github.com/rivo/tview@#bd836ef13b4b",
+        "pkgId": "github.com/rivo/tview@v0.0.0-20190515161233-bd836ef13b4b",
         "deps": [
-          { "nodeId": "github.com/rivo/uniseg" },
-          { "nodeId": "github.com/mattn/go-runewidth" },
-          { "nodeId": "github.com/lucasb-eyer/go-colorful" },
-          { "nodeId": "github.com/gdamore/tcell" }
+          {
+            "nodeId": "github.com/rivo/uniseg"
+          },
+          {
+            "nodeId": "github.com/mattn/go-runewidth"
+          },
+          {
+            "nodeId": "github.com/lucasb-eyer/go-colorful"
+          },
+          {
+            "nodeId": "github.com/gdamore/tcell"
+          }
         ]
       },
       {
         "nodeId": "github.com/rivo/uniseg",
-        "pkgId": "github.com/rivo/uniseg@#b9f5b9457d44",
+        "pkgId": "github.com/rivo/uniseg@v0.0.0-20190513083848-b9f5b9457d44",
         "deps": []
       },
       {
         "nodeId": "github.com/mattn/go-runewidth",
-        "pkgId": "github.com/mattn/go-runewidth@0.0.4",
+        "pkgId": "github.com/mattn/go-runewidth@v0.0.4",
         "deps": []
       },
       {
         "nodeId": "github.com/lucasb-eyer/go-colorful",
-        "pkgId": "github.com/lucasb-eyer/go-colorful@1.0.2",
+        "pkgId": "github.com/lucasb-eyer/go-colorful@v1.0.2",
         "deps": []
       },
       {
         "nodeId": "github.com/gdamore/tcell",
-        "pkgId": "github.com/gdamore/tcell@1.1.2",
+        "pkgId": "github.com/gdamore/tcell@v1.1.2",
         "deps": [
-          { "nodeId": "golang.org/x/text/transform" },
-          { "nodeId": "golang.org/x/text/encoding" },
-          { "nodeId": "github.com/mattn/go-runewidth" },
-          { "nodeId": "github.com/lucasb-eyer/go-colorful" },
-          { "nodeId": "github.com/gdamore/tcell/terminfo" },
-          { "nodeId": "github.com/gdamore/encoding" }
+          {
+            "nodeId": "golang.org/x/text/transform"
+          },
+          {
+            "nodeId": "golang.org/x/text/encoding"
+          },
+          {
+            "nodeId": "github.com/mattn/go-runewidth"
+          },
+          {
+            "nodeId": "github.com/lucasb-eyer/go-colorful"
+          },
+          {
+            "nodeId": "github.com/gdamore/tcell/terminfo"
+          },
+          {
+            "nodeId": "github.com/gdamore/encoding"
+          }
         ]
       },
       {
         "nodeId": "golang.org/x/text/transform",
-        "pkgId": "golang.org/x/text/transform@0.3.2",
+        "pkgId": "golang.org/x/text/transform@v0.3.2",
         "deps": []
       },
       {
         "nodeId": "golang.org/x/text/encoding",
-        "pkgId": "golang.org/x/text/encoding@0.3.2",
+        "pkgId": "golang.org/x/text/encoding@v0.3.2",
         "deps": [
-          { "nodeId": "golang.org/x/text/transform" },
-          { "nodeId": "golang.org/x/text/encoding/internal/identifier" }
+          {
+            "nodeId": "golang.org/x/text/transform"
+          },
+          {
+            "nodeId": "golang.org/x/text/encoding/internal/identifier"
+          }
         ]
       },
       {
         "nodeId": "golang.org/x/text/encoding/internal/identifier",
-        "pkgId": "golang.org/x/text/encoding/internal/identifier@0.3.2",
+        "pkgId": "golang.org/x/text/encoding/internal/identifier@v0.3.2",
         "deps": []
       },
       {
         "nodeId": "github.com/gdamore/tcell/terminfo",
-        "pkgId": "github.com/gdamore/tcell/terminfo@1.1.2",
+        "pkgId": "github.com/gdamore/tcell/terminfo@v1.1.2",
         "deps": []
       },
       {
         "nodeId": "github.com/gdamore/encoding",
-        "pkgId": "github.com/gdamore/encoding@1.0.0",
+        "pkgId": "github.com/gdamore/encoding@v1.0.0",
         "deps": [
-          { "nodeId": "golang.org/x/text/transform" },
-          { "nodeId": "golang.org/x/text/encoding" }
+          {
+            "nodeId": "golang.org/x/text/transform"
+          },
+          {
+            "nodeId": "golang.org/x/text/encoding"
+          }
         ]
       },
       {
         "nodeId": "github.com/antlr/antlr4/runtime/Go/antlr",
-        "pkgId": "github.com/antlr/antlr4/runtime/Go/antlr@#edae2a1c9b4b",
+        "pkgId": "github.com/antlr/antlr4/runtime/Go/antlr@v0.0.0-20190518164840-edae2a1c9b4b",
         "deps": []
       },
       {
         "nodeId": "golang.org/x/text/width",
-        "pkgId": "golang.org/x/text/width@0.3.2",
-        "deps": [{ "nodeId": "golang.org/x/text/transform" }]
+        "pkgId": "golang.org/x/text/width@v0.3.2",
+        "deps": [
+          {
+            "nodeId": "golang.org/x/text/transform"
+          }
+        ]
       }
     ]
   }
