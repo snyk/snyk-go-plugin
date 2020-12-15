@@ -15,8 +15,11 @@ func WalkGoFolders(root string, cb WalkFunc) error {
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		// if it's not a folder (or a symlink to folder), do nothing
 		if info.Mode()&os.ModeSymlink > 0 {
-			info, err = os.Stat(path)
-			if err != nil {
+			if info, err = os.Stat(path); err != nil {
+				if os.IsNotExist(err) {
+					// ignore broken symlinks
+					return nil
+				}
 				return err
 			}
 		}
