@@ -25,7 +25,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@snyk/dep-graph": "^1.21.0",
-    "graphlib": "2.1.8",
+    "@snyk/graphlib": "2.1.9-patch.2",
     "debug": "^4.1.1",
     "snyk-go-parser": "1.4.1",
     "tmp": "0.2.1",
