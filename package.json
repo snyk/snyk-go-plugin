@@ -27,7 +27,7 @@
     "@snyk/dep-graph": "^1.23.1",
     "@snyk/graphlib": "2.1.9-patch.3",
     "debug": "^4.1.1",
-    "snyk-go-parser": "1.4.1",
+    "snyk-go-parser": "1.7.0",
     "tmp": "0.2.1",
     "tslib": "^1.10.0"
   },
