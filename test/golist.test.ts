@@ -34,6 +34,15 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
     t.end();
   });
 
+  test('go list parsing with replace directive', (t) => {
+    t.test('produces dependency graph', async (t) => {
+      const expectedDepGraph = JSON.parse(load('gomod-replace/expected-depgraph.json'));
+      const depGraphAndNotice = await buildDepGraphFromImportsAndModules(`${__dirname}/fixtures/gomod-replace`);
+      t.deepEquals(JSON.stringify(depGraphAndNotice), JSON.stringify(expectedDepGraph));
+    });
+    t.end();
+  });
+
 } else {
   test('go list parsing with module information', (t) => {
     t.rejects('throws on older Go versions', buildDepGraphFromImportsAndModules(`${__dirname}/fixtures/gomod-small`));

@@ -543,7 +543,7 @@ function buildGraph(depGraphBuilder: DepGraphBuilder,
     const pkg = packagesByName[packageImport]!;
     if (pkg.Module && pkg.Module.Version) {
       // get hash (prefixed with #) or version (with v prefix removed)
-      version = toSnykVersion(parseVersion(pkg.Module.Version));
+      version = toSnykVersion(parseVersion(pkg.Module.Replace?.Version || pkg.Module.Version));
     }
 
     if (currentParent && packageImport) {
