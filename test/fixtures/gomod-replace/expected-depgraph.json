@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "1.2.0",
+  "pkgManager": {
+    "name": "gomodules"
+  },
+  "pkgs": [
+    {
+      "id": "github.com/snyk-test/test-repo@0.0.0",
+      "info": {
+        "name": "github.com/snyk-test/test-repo",
+        "version": "0.0.0"
+      }
+    },
+    {
+      "id": "github.com/stretchr/testify/assert@1.6.1",
+      "info": {
+        "name": "github.com/stretchr/testify/assert",
+        "version": "1.6.1"
+      }
+    },
+    {
+      "id": "gopkg.in/yaml.v3@#9f266ea9e77c",
+      "info": {
+        "name": "gopkg.in/yaml.v3",
+        "version": "#9f266ea9e77c"
+      }
+    },
+    {
+      "id": "github.com/pmezard/go-difflib/difflib@1.0.0",
+      "info": {
+        "name": "github.com/pmezard/go-difflib/difflib",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "github.com/davecgh/go-spew/spew@1.1.0",
+      "info": {
+        "name": "github.com/davecgh/go-spew/spew",
+        "version": "1.1.0"
+      }
+    }
+  ],
+  "graph": {
+    "rootNodeId": "root-node",
+    "nodes": [
+      {
+        "nodeId": "root-node",
+        "pkgId": "github.com/snyk-test/test-repo@0.0.0",
+        "deps": [
+          {
+            "nodeId": "github.com/stretchr/testify/assert"
+          }
+        ]
+      },
+      {
+        "nodeId": "github.com/stretchr/testify/assert",
+        "pkgId": "github.com/stretchr/testify/assert@1.6.1",
+        "deps": [
+          {
+            "nodeId": "gopkg.in/yaml.v3"
+          },
+          {
+            "nodeId": "github.com/pmezard/go-difflib/difflib"
+          },
+          {
+            "nodeId": "github.com/davecgh/go-spew/spew"
+          }
+        ]
+      },
+      {
+        "nodeId": "gopkg.in/yaml.v3",
+        "pkgId": "gopkg.in/yaml.v3@#9f266ea9e77c",
+        "deps": []
+      },
+      {
+        "nodeId": "github.com/pmezard/go-difflib/difflib",
+        "pkgId": "github.com/pmezard/go-difflib/difflib@1.0.0",
+        "deps": []
+      },
+      {
+        "nodeId": "github.com/davecgh/go-spew/spew",
+        "pkgId": "github.com/davecgh/go-spew/spew@1.1.0",
+        "deps": []
+      }
+    ]
+  }
+}
