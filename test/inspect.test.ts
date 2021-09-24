@@ -232,7 +232,7 @@ test('multi-root project', (t) => {
         '-list',
         '-ignoredPkgs=path/to/multiroot-pkg/shouldskip/ignored_pkg,' +
         'path/to/multiroot-pkg/shouldskip/ignored_pkg_wildcard/*',
-      ]).then((result) => {
+      ], { env: { GO111MODULE: 'off' } }).then((result) => {
         t.test('resolved deps', (t) => {
           const list = JSON.parse(result);
           t.same(list.sort(), [
@@ -326,7 +326,7 @@ test('multi-root project without code at root', (t) => {
         'run',
         goResolveTool,
         '-list',
-      ]).then((result) => {
+      ], { env: { GO111MODULE: 'off' } }).then((result) => {
         t.test('resolved deps', (t) => {
           const list = JSON.parse(result);
           t.same(list.sort(), [

@@ -84,10 +84,6 @@ function createAssets() {
   // https://www.npmjs.com/package/pkg#detecting-assets-in-source-code
   return [
     path.join(__dirname, '../gosrc/resolve-deps.go'),
-    path.join(__dirname, '../gosrc/resolver/pkg.go'),
-    path.join(__dirname, '../gosrc/resolver/resolver.go'),
-    path.join(__dirname, '../gosrc/resolver/dirwalk/dirwalk.go'),
-    path.join(__dirname, '../gosrc/resolver/graph/graph.go'),
   ];
 }
 
@@ -164,10 +160,9 @@ async function getDependencies(root, targetFile) {
     }
     const args = ['run', goResolveTool, ignorePkgsParam];
     debug('executing go deps resolver', {cmd: 'go' + args.join(' ')});
-    const graphStr = await subProcess.execute(
-      'go',
+    const graphStr = await runGo(
       args,
-      {cwd: root},
+      { cwd: root, env: { GO111MODULE: 'off' } },
     );
     tempDirObj.removeCallback();
     debug('loading deps resolver graph output to graphlib', {jsonSize: graphStr.length});
@@ -483,8 +478,11 @@ export async function buildDepGraphFromImportsAndModules(
 
   try {
     const goModAbsolutPath = path.resolve(root, path.dirname(targetFile));
-    goDepsOutput = await subProcess.execute('go list', ['-json', '-deps', './...'], { cwd: goModAbsolutPath } );
+    goDepsOutput = await runGo(['list', '-json', '-deps', './...'], {cwd: goModAbsolutPath});
   } catch (err) {
+    if (/cannot find main module, but found/.test(err)) {
+      return depGraphBuilder.build();
+    }
     const userError = new CustomError(err);
     userError.userMessage = "'go list -json -deps ./...' command failed with error: " + userError.message;
     throw userError;
@@ -518,6 +516,21 @@ export async function buildDepGraphFromImportsAndModules(
   buildGraph(depGraphBuilder, topLevelDeps, packagesByName, 'root-node', childrenChain, ancestorsChain);
 
   return depGraphBuilder.build();
+}
+
+async function runGo(args: string[], options: any, additionalGoCommands: string[] = []): Promise<string> {
+  try {
+    return await subProcess.execute('go', args, options);
+  } catch (err) {
+    const [command] = /(go mod download)|(go get [^"]*)/.exec(err) || [];
+    if (command && !additionalGoCommands.includes(command)) {
+      debug('running command:', command);
+      const [_, ...newArgs] = command.split(' ');
+      await subProcess.execute('go', newArgs, options);
+      return runGo(args, options, additionalGoCommands.concat(command));
+    }
+    throw err;
+  }
 }
 
 function buildGraph(depGraphBuilder: DepGraphBuilder,
