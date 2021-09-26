@@ -1,3 +1,5 @@
+import { goVersion } from '../go-version';
+
 var test = require('tap').test;
 var path = require('path');
 var fs = require('fs');
@@ -7,22 +9,25 @@ var plugin = require('../../lib');
 var subProcess = require('../../lib/sub-process');
 const isRunningOnWindows = os.platform() === 'win32';
 
-test('install dep', {timeout: 120 * 1000}, function () {
-  chdirToPkg([]);
-  return getGolangDep();
-});
+if (goVersion[0] > 1 || goVersion[1] < 16) {
+  // the "Dep" package is deprecated since 2020, making Gopkg no longer supported since go 1.16
+  // more information: https://github.com/golang/go/issues/38158
+  test('install dep', {timeout: 120 * 1000}, function() {
+    chdirToPkg([]);
+    return getGolangDep();
+  });
+  test('proj imports k8s client', {timeout: 300 * 1000}, (t) => {
+    return testPkg(t,
+      ['with-k8s-client'],
+      'Gopkg.lock',
+      'expected-list.json'
+    );
+  });
+}
 
 test('install govendor', {timeout: 120 * 1000}, function () {
   chdirToPkg([]);
   return getGovendor();
-});
-
-test('proj imports k8s client', {timeout: 300 * 1000}, (t) => {
-  return testPkg(t,
-    ['with-k8s-client'],
-    'Gopkg.lock',
-    'expected-list.json'
-  );
 });
 
 test('prometheus 1.8', (t) => {

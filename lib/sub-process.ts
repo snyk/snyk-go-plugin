@@ -1,6 +1,6 @@
 import * as childProcess from 'child_process';
 
-export function execute(command: string, args: string[], options?: {cwd?: string}): Promise<string> {
+export function execute(command: string, args: string[], options?: { cwd?: string, env?: any }): Promise<string> {
 
   if (process.env.TERM_PROGRAM === 'vscode') {
     throw new Error('running go subprocesses in VS Code seems to be broken!');
@@ -9,8 +9,11 @@ export function execute(command: string, args: string[], options?: {cwd?: string
   }
 
   const spawnOptions: childProcess.SpawnOptions = {shell: true};
-  if (options && options.cwd) {
+  if (options?.cwd) {
     spawnOptions.cwd = options.cwd;
+  }
+  if (options?.env) {
+    spawnOptions.env = { ...process.env, ...options.env };
   }
 
   return new Promise((resolve, reject) => {
