@@ -1,13 +1,6 @@
 import * as childProcess from 'child_process';
 
 export function execute(command: string, args: string[], options?: { cwd?: string, env?: any }): Promise<string> {
-
-  if (process.env.TERM_PROGRAM === 'vscode') {
-    throw new Error('running go subprocesses in VS Code seems to be broken!');
-    // Namely, it seems that no data is collected from stdout/stderr streams.
-    // Even just running `go version > 1.txt` in the terminal produces an empty file.
-  }
-
   const spawnOptions: childProcess.SpawnOptions = {shell: true};
   if (options?.cwd) {
     spawnOptions.cwd = options.cwd;
