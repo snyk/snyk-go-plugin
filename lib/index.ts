@@ -37,6 +37,7 @@ interface CountDict {
 interface Options {
   debug?: boolean;
   file?: string;
+  args?: string[];
 }
 
 export async function inspect(root, targetFile, options: Options = {}) {
@@ -44,7 +45,7 @@ export async function inspect(root, targetFile, options: Options = {}) {
 
   const result = await Promise.all([
     getMetaData(root, targetFile),
-    getDependencies(root, targetFile),
+    getDependencies(root, targetFile, options.args),
   ]);
 
   const hasDepGraph = result[1].dependencyGraph && !result[1].dependencyTree;
@@ -136,11 +137,11 @@ const VENDOR_SYNC_CMD_BY_PKG_MANAGER: {[k in GoPackageManagerType]: string} = {
   gomodules: 'go mod download',
 };
 
-async function getDependencies(root, targetFile) {
+async function getDependencies(root, targetFile, additionalArgs?: string[]) {
   let tempDirObj;
   const packageManager = pkgManagerByTarget(targetFile);
   if (packageManager === 'gomodules') {
-    return { dependencyGraph: await buildDepGraphFromImportsAndModules(root, targetFile)};
+    return { dependencyGraph: await buildDepGraphFromImportsAndModules(root, targetFile, additionalArgs)};
   }
 
   try {
@@ -463,7 +464,8 @@ interface GoPackagesByName {
 
 export async function buildDepGraphFromImportsAndModules(
     root: string = '.',
-    targetFile: string = 'go.mod'): Promise<DepGraph> {
+    targetFile: string = 'go.mod',
+    additionalArgs: string[] = []): Promise<DepGraph> {
 
   // TODO(BST-657): parse go.mod file to obtain root module name and go version
   const projectName = path.basename(root); // The correct name should come from the `go list` command
@@ -476,15 +478,16 @@ export async function buildDepGraphFromImportsAndModules(
 
   let goDepsOutput: string;
 
+  const args = ['list', ...additionalArgs, '-json', '-deps', './...'];
   try {
     const goModAbsolutPath = path.resolve(root, path.dirname(targetFile));
-    goDepsOutput = await runGo(['list', '-json', '-deps', './...'], {cwd: goModAbsolutPath});
+    goDepsOutput = await runGo(args, {cwd: goModAbsolutPath});
   } catch (err) {
     if (/cannot find main module, but found/.test(err)) {
       return depGraphBuilder.build();
     }
     const userError = new CustomError(err);
-    userError.userMessage = "'go list -json -deps ./...' command failed with error: " + userError.message;
+    userError.userMessage = `'go ${args.join(' ')}' command failed with error: ${userError.message}`;
     throw userError;
   }
 
@@ -500,8 +503,8 @@ export async function buildDepGraphFromImportsAndModules(
   }
 
   const localPackages = goDeps.filter((gp) => !gp.DepOnly);
-  const localPackageWithMainModule = localPackages
-      .find((localPackage) => !!(localPackage.Module && localPackage.Module.Main));
+  const localPackageWithMainModule = localPackages.find((localPackage) =>
+    !!(localPackage.Module && localPackage.Module.Main));
   if (localPackageWithMainModule && localPackageWithMainModule!.Module!.Path) {
     depGraphBuilder = new DepGraphBuilder({ name: 'gomodules' }, {
       name: localPackageWithMainModule!.Module!.Path,
