@@ -22,6 +22,12 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
      t.deepEquals(JSON.stringify(depGraphAndNotice), JSON.stringify(expectedDepGraph));
     });
 
+    t.test('additional arguments are passed', async (t) => {
+      const depGraph = await buildDepGraphFromImportsAndModules(`${__dirname}/fixtures/golist/args`,
+        'go.mod', ['-e']);
+      t.ok('should pass when -e argument is passed', depGraph);
+    });
+
     t.end();
   });
 
