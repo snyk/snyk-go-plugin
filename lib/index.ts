@@ -9,8 +9,9 @@ import * as subProcess from './sub-process';
 import { CustomError } from './errors/custom-error';
 
 import {
-  parseGoPkgConfig, parseGoVendorConfig, GoPackageManagerType, GoProjectConfig, toSnykVersion, parseVersion,
+  parseGoPkgConfig, parseGoVendorConfig, GoPackageManagerType,
 } from 'snyk-go-parser';
+import type { GoPackageConfig } from 'snyk-go-parser/dist/types';
 
 const debug = debugLib('snyk-go-plugin');
 
@@ -146,7 +147,7 @@ async function getDependencies(root, targetFile, additionalArgs?: string[]) {
 
   try {
     debug('parsing manifest/lockfile', {root, targetFile});
-    const config = parseConfig(root, targetFile);
+    const config = await parseConfig(root, targetFile);
     tempDirObj = tmp.dirSync({
       unsafeCleanup: true,
     });
@@ -357,7 +358,7 @@ interface DepManifest {
   ignored: string[];
 }
 
-function parseConfig(root, targetFile): GoProjectConfig {
+function parseConfig(root, targetFile): Promise<GoPackageConfig> {
   const pkgManager = pkgManagerByTarget(targetFile);
   debug('detected package-manager:', pkgManager);
   switch (pkgManager) {
@@ -559,7 +560,7 @@ function buildGraph(depGraphBuilder: DepGraphBuilder,
     const pkg = packagesByName[packageImport]!;
     if (pkg.Module && pkg.Module.Version) {
       // get hash (prefixed with #) or version (with v prefix removed)
-      version = toSnykVersion(parseVersion(pkg.Module.Replace?.Version || pkg.Module.Version));
+      version = pkg.Module.Replace?.Version || pkg.Module.Version;
     }
 
     if (currentParent && packageImport) {
