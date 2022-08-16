@@ -64,7 +64,7 @@ test('with nested GOPATH/src/proj symlink-ing to ../..', async(t) => {
   const cmd = `cd ${cwd} && ${exportEnvVarCmd} && ${execPluginCmd}`;
   return subProcess.execute(
     cmd,
-    [])
+    [], {}, true)
     .then((result) => {
       const resultJson = jsonParse(result);
 
@@ -143,7 +143,7 @@ test('package with broken symlink', async (t) => {
   const cmd = `cd ${cwd} && ${exportEnvVarCmd} && ${execPluginCmd}`;
   return subProcess.execute(
     cmd,
-    [])
+    [], {}, true)
     .then((result) => {
       const resultJson = jsonParse(result);
 
