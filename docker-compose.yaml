@@ -1,0 +1,12 @@
+version: "3.9"
+
+services:
+  go-plugin:
+    build:
+      context: .
+      dockerfile: .
+    volumes:
+      - ./test:/snyk-go-plugin/test
+      - ./lib:/snyk-go-plugin/lib
+    entrypoint:
+      - bash

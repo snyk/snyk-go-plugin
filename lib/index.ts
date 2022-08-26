@@ -41,6 +41,12 @@ interface Options {
 }
 
 export async function inspect(root, targetFile, options: Options = {}) {
+  try {
+    const output = await subProcess.execute('go', ['version']);
+  } catch (err) {
+    console.log({ err });
+    throw err;
+  }
   options.debug ? debugLib.enable('snyk-go-plugin') : debugLib.disable();
 
   const result = await Promise.all([
@@ -72,7 +78,6 @@ async function getMetaData(root, targetFile) {
   const output = await subProcess.execute('go', ['version'], {cwd: root});
   const versionMatch = /(go\d+\.?\d+?\.?\d*)/.exec(output);
   const runtime = (versionMatch) ? versionMatch[0] : undefined;
-
   return {
     name: 'snyk-go-plugin',
     runtime,
@@ -125,7 +130,7 @@ function dumpAllResolveDepsFilesInTempDir(tempDirName) {
   });
 }
 
-const PACKAGE_MANAGER_BY_TARGET: {[k: string]: GoPackageManagerType}  = {
+const PACKAGE_MANAGER_BY_TARGET: {[k: string]: GoPackageManagerType} = {
   'Gopkg.lock': 'golangdep',
   'vendor.json': 'govendor',
   'go.mod': 'gomodules',
@@ -154,7 +159,7 @@ async function getDependencies(root, targetFile, additionalArgs?: string[]) {
     dumpAllResolveDepsFilesInTempDir(tempDirObj.name);
 
     const goResolveTool =
-      path.join(tempDirObj.name, 'resolve-deps.go');
+    path.join(tempDirObj.name, 'resolve-deps.go');
     let ignorePkgsParam;
     if (config.ignoredPkgs && config.ignoredPkgs.length > 0) {
       ignorePkgsParam = '-ignoredPkgs=' + config.ignoredPkgs.join(',');
@@ -226,7 +231,6 @@ function pkgManagerByTarget(targetFile): GoPackageManagerType {
 function syncCmdForTarget(targetFile) {
   return VENDOR_SYNC_CMD_BY_PKG_MANAGER[
     pkgManagerByTarget(targetFile)];
-}
 
 function getProjectRootFromTargetFile(targetFile) {
   const resolved = path.resolve(targetFile);
@@ -258,7 +262,6 @@ function recursivelyBuildPkgTree(
 ): DepTree {
 
   const isRoot = (node.Name === VIRTUAL_ROOT_NODE_ID);
-
   const isProjSubpkg = isProjSubpackage(node.Dir, projectRootPath);
 
   const pkg: DepTree = {
@@ -280,7 +283,6 @@ function recursivelyBuildPkgTree(
 
   const children = graph.successors(node.Name).sort();
   children.forEach((depName) => {
-
     // We drop whole dep tree branches for frequently repeatedpackages:
     // this loses some paths, but avoids explosion in result size
     if ((totalPackageOccurenceCounter[depName] || 0) > 10) {
@@ -330,8 +332,7 @@ function isProjSubpackage(pkgPath, projectRootPath) {
 
   let root = projectRootPath;
   root =
-   (root[root.length - 1] === path.sep) ? root : (root + path.sep);
-
+  (root[root.length - 1] === path.sep) ? root : (root + path.sep);
   if (pkgPath.indexOf(root) !== 0) {
     return false;
   }
@@ -363,7 +364,10 @@ function parseConfig(root, targetFile): GoProjectConfig {
   switch (pkgManager) {
     case 'golangdep': {
       try {
-        return parseGoPkgConfig(getDepManifest(root, targetFile), getDepLock(root, targetFile));
+        return parseGoPkgConfig(
+          getDepManifest(root, targetFile),
+          getDepLock(root, targetFile)
+        );
       } catch (e) {
         throw (new Error('failed parsing manifest/lock files for Go dep: ' + e.message));
       }
@@ -379,7 +383,6 @@ function parseConfig(root, targetFile): GoProjectConfig {
       throw new Error('Unsupported file: ' + targetFile);
     }
   }
-
 }
 
 function getDepLock(root, targetFile): string {
@@ -463,9 +466,9 @@ interface GoPackagesByName {
 }
 
 export async function buildDepGraphFromImportsAndModules(
-    root: string = '.',
-    targetFile: string = 'go.mod',
-    additionalArgs: string[] = []): Promise<DepGraph> {
+  root: string = '.',
+  targetFile: string = 'go.mod',
+  additionalArgs: string[] = []): Promise<DepGraph> {
 
   // TODO(BST-657): parse go.mod file to obtain root module name and go version
   const projectName = path.basename(root); // The correct name should come from the `go list` command
@@ -481,8 +484,7 @@ export async function buildDepGraphFromImportsAndModules(
   const args = ['list', ...additionalArgs, '-json', '-deps', './...'];
   try {
     const goModAbsolutPath = path.resolve(root, path.dirname(targetFile));
-    goDepsOutput = await runGo(args, {cwd: goModAbsolutPath});
-  } catch (err) {
+    goDepsOutput = await runGo(args, {cwd: goModAbsolutPath});  } catch (err) {
     if (/cannot find main module, but found/.test(err)) {
       return depGraphBuilder.build();
     }
@@ -525,8 +527,7 @@ async function runGo(args: string[], options: any, additionalGoCommands: string[
   try {
     return await subProcess.execute('go', args, options);
   } catch (err) {
-    const [command] = /(go mod download)|(go get [^"]*)/.exec(err) || [];
-    if (command && !additionalGoCommands.includes(command)) {
+    const [command] = /(go mod download)|(go get [^"]*)/.exec(err) || [];    if (command && !additionalGoCommands.includes(command)) {
       debug('running command:', command);
       const [_, ...newArgs] = command.split(' ');
       await subProcess.execute('go', newArgs, options);
@@ -537,12 +538,11 @@ async function runGo(args: string[], options: any, additionalGoCommands: string[
 }
 
 function buildGraph(depGraphBuilder: DepGraphBuilder,
-                    depPackages: string[],
-                    packagesByName: GoPackagesByName,
-                    currentParent: string,
-                    childrenChain: Map<string, string[]>,
-                    ancestorsChain: Map<string, string[]>) {
-
+  depPackages: string[],
+  packagesByName: GoPackagesByName,
+  currentParent: string,
+  childrenChain: Map<string, string[]>,
+  ancestorsChain: Map<string, string[]>) {
   const depPackagesLen = depPackages.length;
 
   for (let i = depPackagesLen - 1; i >= 0; i--) {
@@ -563,7 +563,6 @@ function buildGraph(depGraphBuilder: DepGraphBuilder,
     }
 
     if (currentParent && packageImport) {
-
       const newNode = {
         name: packageImport,
         version,
