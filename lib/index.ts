@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as tmp from 'tmp';
+import { lookpath } from 'lookpath';
 import debugLib = require('debug');
 import * as graphlib from '@snyk/graphlib';
 import { DepGraphBuilder, DepGraph } from '@snyk/dep-graph';
@@ -42,6 +43,11 @@ interface Options {
 
 export async function inspect(root, targetFile, options: Options = {}) {
   options.debug ? debugLib.enable('snyk-go-plugin') : debugLib.disable();
+
+  const goPath = await lookpath('go');
+  if (!goPath) {
+    throw new Error('The "go" command is not available on your system. To scan your dependencies in the CLI, you must ensure you have first installed the relevant package manager.');
+  }
 
   const result = await Promise.all([
     getMetaData(root, targetFile),
