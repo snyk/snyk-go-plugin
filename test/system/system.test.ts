@@ -23,29 +23,29 @@ if (goVersion[0] > 1 || goVersion[1] < 16) {
       'expected-list.json'
     );
   });
-}
 
-test('install govendor', {timeout: 120 * 1000}, function () {
-  chdirToPkg([]);
-  return getGovendor();
-});
-
-test('prometheus 1.8', (t) => {
-  chdirToPkg(['github.com', 'prometheus']);
-  return clonePkg(
-    'https://github.com/prometheus/prometheus',
-    'v1.8.0',
-    'prometheus'
-  ).then(function () {
-    const expectedPromDeps = isRunningOnWindows ? 'prometheus-ms-expected-list.json' : 'prometheus-unix-expected-list.json'
-    return testPkg(t,
-      ['github.com', 'prometheus', 'prometheus', 'cmd', 'prometheus'],
-      ['..', '..', 'vendor', 'vendor.json'].join(path.sep),
-      ['..', '..', '..',
-        expectedPromDeps].join(path.sep)
-    );
+  test('install govendor', {timeout: 120 * 1000}, function () {
+    chdirToPkg([]);
+    return getGovendor();
   });
-});
+
+  test('prometheus 1.8', (t) => {
+    chdirToPkg(['github.com', 'prometheus']);
+    return clonePkg(
+        'https://github.com/prometheus/prometheus',
+        'v1.8.0',
+        'prometheus'
+    ).then(function () {
+      const expectedPromDeps = isRunningOnWindows ? 'prometheus-ms-expected-list.json' : 'prometheus-unix-expected-list.json'
+      return testPkg(t,
+          ['github.com', 'prometheus', 'prometheus', 'cmd', 'prometheus'],
+          ['..', '..', 'vendor', 'vendor.json'].join(path.sep),
+          ['..', '..', '..',
+            expectedPromDeps].join(path.sep)
+      );
+    });
+  });
+}
 
 function testPkg(t, pkgPathArray, targetFile, expectedPkgsListFile) {
   chdirToPkg(pkgPathArray);
