@@ -83,7 +83,7 @@ jobs:
   lint:
     <<: *defaults
     docker:
-      - image: circleci/node:<< parameters.node_version >>
+      - image: cimg/node:<< parameters.node_version >>
     steps:
       - checkout
       - install_deps
@@ -129,7 +129,7 @@ jobs:
   release:
     <<: *defaults
     docker:
-      - image: circleci/node:<< parameters.node_version >>
+      - image: cimg/node:<< parameters.node_version >>
     resource_class: small
     steps:
       - checkout
@@ -145,7 +145,7 @@ workflows:
       - lint:
           name: Lint
           context: nodejs-install
-          node_version: "10"
+          node_version: "18.15"
       - test-unix:
           name: Unix with node v<< matrix.node_version >>, go v<< matrix.go_version >>
           context: nodejs-install
@@ -169,7 +169,7 @@ workflows:
       - release:
           name: Release
           context: nodejs-app-release
-          node_version: "18"
+          node_version: "18.15"
           requires:
             - test-unix
             - test-windows
