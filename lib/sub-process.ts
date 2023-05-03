@@ -1,10 +1,15 @@
 import * as childProcess from 'child_process';
 
-export function execute(command: string,
-                        args: string[],
-                        options?: { cwd?: string, env?: any },
-                        shell: boolean = false): Promise<string> {
-  const spawnOptions: childProcess.SpawnOptions = { shell, env: {...process.env} };
+export function execute(
+  command: string,
+  args: string[],
+  options?: { cwd?: string; env?: any },
+  shell: boolean = false,
+): Promise<string> {
+  const spawnOptions: childProcess.SpawnOptions = {
+    shell,
+    env: { ...process.env },
+  };
   if (options?.cwd) {
     spawnOptions.cwd = options.cwd;
   }

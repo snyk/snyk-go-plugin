@@ -11,14 +11,14 @@ test('sub-process', (t) => {
     process.env = { ...preTestEnv };
   });
 
-  t.test('restore proxy environment', async (t) => {   
-    process.env.SNYK_SYSTEM_HTTPS_PROXY = "http://1.1.1.1";
-    process.env.SNYK_SYSTEM_HTTP_PROXY = "http://2.2.2.2";
-    process.env.SNYK_SYSTEM_NO_PROXY = "snyk.com";
-    
-    process.env.HTTPS_PROXY = "http://127.0.0.1";
-    process.env.HTTP_PROXY = "http://127.0.0.1";
-    process.env.NO_PROXY = "example.com";
+  t.test('restore proxy environment', async (t) => {
+    process.env.SNYK_SYSTEM_HTTPS_PROXY = 'http://1.1.1.1';
+    process.env.SNYK_SYSTEM_HTTP_PROXY = 'http://2.2.2.2';
+    process.env.SNYK_SYSTEM_NO_PROXY = 'snyk.com';
+
+    process.env.HTTPS_PROXY = 'http://127.0.0.1';
+    process.env.HTTP_PROXY = 'http://127.0.0.1';
+    process.env.NO_PROXY = 'example.com';
 
     const result = await execute('env', []);
 

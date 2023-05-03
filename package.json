@@ -11,8 +11,9 @@
   "scripts": {
     "build": "tsc",
     "build-watch": "tsc -w",
-    "lint": "tslint --project tsconfig.json --format stylish",
+    "lint": "eslint --color --cache '{lib,test}/**/*.{js,ts}' && prettier --check '{lib,test}/**/*.{js,ts}'",
     "prepare": "npm run build",
+    "format": "prettier --write '{lib,test}/**/*.{js,ts,json}'",
     "test-functional": "tap ./test/*.test.ts -R spec",
     "test-system": "tap -R spec --timeout=300 ./test/system/*.test.ts",
     "test": "npm run test-functional && npm run test-system",
@@ -36,10 +37,15 @@
     "@types/debug": "^4.1.4",
     "@types/node": "^6.14.4",
     "@types/tmp": "^0.1.0",
+    "@typescript-eslint/eslint-plugin": "^4.33.0",
+    "@typescript-eslint/parser": "^4.33.0",
+    "eslint": "7.32.0",
+    "eslint-config-prettier": "^8.3.0",
+    "prettier": "^2.7.1",
     "tap": "^12.6.1",
     "tap-only": "0.0.5",
     "ts-node": "^8.0.3",
     "tslint": "^5.15.0",
-    "typescript": "^3.4.2"
+    "typescript": "4.8.4"
   }
 }
