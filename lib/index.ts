@@ -153,12 +153,13 @@ async function getDependencies(root, targetFile, additionalArgs?: string[]) {
   let tempDirObj;
   const packageManager = pkgManagerByTarget(targetFile);
   if (packageManager === 'gomodules') {
+    const dependencyGraph = await buildDepGraphFromImportsAndModules(
+      root,
+      targetFile,
+      additionalArgs,
+    );
     return {
-      dependencyGraph: await buildDepGraphFromImportsAndModules(
-        root,
-        targetFile,
-        additionalArgs,
-      ),
+      dependencyGraph,
     };
   }
 
@@ -597,10 +598,12 @@ function buildGraph(
   currentParent: string,
   childrenChain: Map<string, string[]>,
   ancestorsChain: Map<string, string[]>,
+  visited?: Set<string>,
 ) {
   const depPackagesLen = depPackages.length;
 
   for (let i = depPackagesLen - 1; i >= 0; i--) {
+    visited = visited || new Set<string>();
     const packageImport = depPackages[i];
     let version = 'unknown';
     if (isBuiltinPackage(packageImport)) {
@@ -636,8 +639,18 @@ function buildGraph(
         continue;
       }
 
+      if (visited.has(packageImport)) {
+        const prunedId = `${packageImport}:pruned`;
+        depGraphBuilder.addPkgNode(newNode, prunedId, {
+          labels: { pruned: 'true' },
+        });
+        depGraphBuilder.connectDep(currentParent, prunedId);
+        continue;
+      }
+
       depGraphBuilder.addPkgNode(newNode, packageImport);
       depGraphBuilder.connectDep(currentParent, packageImport);
+      visited.add(packageImport);
 
       childrenChain.set(currentParent, [...currentChildren, packageImport]);
       ancestorsChain.set(packageImport, [...currentAncestors, currentParent]);
@@ -651,6 +664,7 @@ function buildGraph(
           packageImport,
           childrenChain,
           ancestorsChain,
+          visited,
         );
       }
     }
