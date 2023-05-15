@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  win: circleci/windows@2.4.0
+  win: circleci/windows@5
 
 defaults: &defaults
   parameters:
@@ -77,7 +77,7 @@ commands:
     steps:
       - run:
           name: Installing Go
-          command: choco install golang --version << parameters.go_version >> --allow-downgrade
+          command: choco install golang --version << parameters.go_version >> --allow-downgrade -y
 
 jobs:
   lint:
