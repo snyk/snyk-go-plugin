@@ -6,6 +6,9 @@
     "type": "git",
     "url": "https://github.com/snyk/snyk-go-plugin"
   },
+  "engines": {
+    "node": ">=12"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
