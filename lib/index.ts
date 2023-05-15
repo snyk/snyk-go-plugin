@@ -13,10 +13,9 @@ import {
   parseGoPkgConfig,
   parseGoVendorConfig,
   GoPackageManagerType,
-  GoProjectConfig,
-  toSnykVersion,
-  parseVersion,
+  GoPackageConfig,
 } from 'snyk-go-parser';
+import type { ModuleVersion } from 'snyk-go-parser';
 
 const debug = debugLib('snyk-go-plugin');
 
@@ -165,7 +164,7 @@ async function getDependencies(root, targetFile, additionalArgs?: string[]) {
 
   try {
     debug('parsing manifest/lockfile', { root, targetFile });
-    const config = parseConfig(root, targetFile);
+    const config = await parseConfig(root, targetFile);
     tempDirObj = tmp.dirSync({
       unsafeCleanup: true,
     });
@@ -386,13 +385,13 @@ function isProjSubpackage(pkgPath, projectRootPath) {
 //   ignored: string[];
 // }
 
-function parseConfig(root, targetFile): GoProjectConfig {
+async function parseConfig(root, targetFile): Promise<GoPackageConfig> {
   const pkgManager = pkgManagerByTarget(targetFile);
   debug('detected package-manager:', pkgManager);
   switch (pkgManager) {
     case 'golangdep': {
       try {
-        return parseGoPkgConfig(
+        return await parseGoPkgConfig(
           getDepManifest(root, targetFile),
           getDepLock(root, targetFile),
         );
@@ -404,7 +403,7 @@ function parseConfig(root, targetFile): GoProjectConfig {
     }
     case 'govendor': {
       try {
-        return parseGoVendorConfig(getGovendorJson(root, targetFile));
+        return await parseGoVendorConfig(getGovendorJson(root, targetFile));
       } catch (e: any) {
         throw new Error(
           'failed parsing config file for Go Vendor Tool: ' + e.message,
@@ -699,4 +698,31 @@ export function jsonParse(s: string) {
 function isBuiltinPackage(pkgName: string): boolean {
   // Non-builtin packages have domain names in them that contain dots
   return pkgName.indexOf('.') === -1;
+}
+
+const rePseudoVersion = /(v\d+\.\d+\.\d+)-(.*?)(\d{14})-([0-9a-f]{12})/;
+const reExactVersion = /^(.*?)(\+incompatible)?$/;
+
+function parseVersion(versionString: string): ModuleVersion {
+  const maybeRegexMatch = rePseudoVersion.exec(versionString);
+  if (maybeRegexMatch) {
+    const [baseVersion, suffix, timestamp, hash] = maybeRegexMatch.slice(1);
+    return { baseVersion, suffix, timestamp, hash };
+  } else {
+    // No pseudo version recognized, assuming the provided version string is exact
+    const [exactVersion, incompatibleStr] = reExactVersion
+      .exec(versionString)!
+      .slice(1);
+    return { exactVersion, incompatible: !!incompatibleStr };
+  }
+}
+
+function toSnykVersion(v: ModuleVersion): string {
+  if ('hash' in v && v.hash) {
+    return '#' + v.hash;
+  } else if ('exactVersion' in v && v.exactVersion) {
+    return v.exactVersion.replace(/^v/, '');
+  } else {
+    throw new Error('Unexpected module version format');
+  }
 }
