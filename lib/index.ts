@@ -603,7 +603,7 @@ function buildGraph(
   const depPackagesLen = depPackages.length;
 
   for (let i = depPackagesLen - 1; i >= 0; i--) {
-    visited = visited || new Set<string>();
+    const localVisited = visited || new Set<string>();
     const packageImport = depPackages[i];
     let version = 'unknown';
     if (isBuiltinPackage(packageImport)) {
@@ -639,7 +639,7 @@ function buildGraph(
         continue;
       }
 
-      if (visited.has(packageImport)) {
+      if (localVisited.has(packageImport)) {
         const prunedId = `${packageImport}:pruned`;
         depGraphBuilder.addPkgNode(newNode, prunedId, {
           labels: { pruned: 'true' },
@@ -650,7 +650,7 @@ function buildGraph(
 
       depGraphBuilder.addPkgNode(newNode, packageImport);
       depGraphBuilder.connectDep(currentParent, packageImport);
-      visited.add(packageImport);
+      localVisited.add(packageImport);
 
       childrenChain.set(currentParent, [...currentChildren, packageImport]);
       ancestorsChain.set(packageImport, [...currentAncestors, currentParent]);
@@ -664,7 +664,7 @@ function buildGraph(
           packageImport,
           childrenChain,
           ancestorsChain,
-          visited,
+          localVisited,
         );
       }
     }

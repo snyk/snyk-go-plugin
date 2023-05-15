@@ -117,7 +117,7 @@
             "nodeId": "github.com/rivo/tview"
           },
           {
-            "nodeId": "github.com/gdamore/tcell:pruned"
+            "nodeId": "github.com/gdamore/tcell"
           },
           {
             "nodeId": "github.com/antlr/antlr4/runtime/Go/antlr"
@@ -186,6 +186,12 @@
           },
           {
             "nodeId": "github.com/gdamore/encoding"
+          },
+          {
+            "nodeId": "github.com/mattn/go-runewidth"
+          },
+          {
+            "nodeId": "github.com/lucasb-eyer/go-colorful"
           }
         ]
       },
@@ -269,16 +275,6 @@
         }
       },
       {
-        "nodeId": "github.com/gdamore/tcell:pruned",
-        "pkgId": "github.com/gdamore/tcell@1.1.2",
-        "deps": [],
-        "info": {
-          "labels": {
-            "pruned": "true"
-          }
-        }
-      },
-      {
         "nodeId": "github.com/antlr/antlr4/runtime/Go/antlr",
         "pkgId": "github.com/antlr/antlr4/runtime/Go/antlr@#edae2a1c9b4b",
         "deps": []
@@ -288,7 +284,7 @@
         "pkgId": "golang.org/x/text/width@0.3.2",
         "deps": [
           {
-            "nodeId": "golang.org/x/text/transform:pruned"
+            "nodeId": "golang.org/x/text/transform"
           }
         ]
       }
