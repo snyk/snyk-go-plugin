@@ -524,6 +524,9 @@ export async function buildDepGraphFromImportsAndModules(
     if (/cannot find main module, but found/.test(err)) {
       return depGraphBuilder.build();
     }
+    if (/does not contain main module/.test(err)) {
+      return depGraphBuilder.build();
+    }
     const userError = new CustomError(err);
     userError.userMessage = `'go ${args.join(
       ' ',
