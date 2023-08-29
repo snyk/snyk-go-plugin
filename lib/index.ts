@@ -4,7 +4,8 @@ import * as tmp from 'tmp';
 import { lookpath } from 'lookpath';
 import debugLib = require('debug');
 import * as graphlib from '@snyk/graphlib';
-import { DepGraphBuilder, DepGraph } from '@snyk/dep-graph';
+import { DepGraphBuilder, DepGraph, PkgInfo } from '@snyk/dep-graph';
+import { PackageURL } from 'packageurl-js';
 
 import * as subProcess from './sub-process';
 import { CustomError } from './errors/custom-error';
@@ -20,6 +21,7 @@ import type { ModuleVersion } from 'snyk-go-parser';
 const debug = debugLib('snyk-go-plugin');
 
 const VIRTUAL_ROOT_NODE_ID = '.';
+const PURL_TYPE_GOLANG = 'golang';
 
 export interface DepDict {
   [name: string]: DepTree;
@@ -43,6 +45,7 @@ interface Options {
   debug?: boolean;
   file?: string;
   args?: string[];
+  printGraph?: boolean;
 }
 
 export async function inspect(root, targetFile, options: Options = {}) {
@@ -57,7 +60,7 @@ export async function inspect(root, targetFile, options: Options = {}) {
 
   const result = await Promise.all([
     getMetaData(root, targetFile),
-    getDependencies(root, targetFile, options.args),
+    getDependencies(root, targetFile, options),
   ]);
 
   const hasDepGraph = result[1].dependencyGraph && !result[1].dependencyTree;
@@ -148,14 +151,14 @@ const VENDOR_SYNC_CMD_BY_PKG_MANAGER: { [k in GoPackageManagerType]: string } =
     gomodules: 'go mod download',
   };
 
-async function getDependencies(root, targetFile, additionalArgs?: string[]) {
+async function getDependencies(root, targetFile, opts: Options) {
   let tempDirObj;
   const packageManager = pkgManagerByTarget(targetFile);
   if (packageManager === 'gomodules') {
     const dependencyGraph = await buildDepGraphFromImportsAndModules(
       root,
       targetFile,
-      additionalArgs,
+      opts,
     );
     return {
       dependencyGraph,
@@ -499,11 +502,13 @@ interface GoPackagesByName {
 export async function buildDepGraphFromImportsAndModules(
   root: string = '.',
   targetFile: string = 'go.mod',
-  additionalArgs: string[] = [],
+  opts?: Options,
 ): Promise<DepGraph> {
   // TODO(BST-657): parse go.mod file to obtain root module name and go version
   const projectName = path.basename(root); // The correct name should come from the `go list` command
   const projectVersion = '0.0.0'; // TODO(BST-657): try `git describe`?
+  const additionalArgs = opts?.args ?? [];
+  const withPurl = !!opts?.printGraph; // If the graph is meant for stdout output, include PackageURLs.
 
   let depGraphBuilder = new DepGraphBuilder(
     { name: 'gomodules' },
@@ -549,13 +554,18 @@ export async function buildDepGraphFromImportsAndModules(
     (localPackage) => !!(localPackage.Module && localPackage.Module.Main),
   );
   if (localPackageWithMainModule && localPackageWithMainModule!.Module!.Path) {
-    depGraphBuilder = new DepGraphBuilder(
-      { name: 'gomodules' },
-      {
-        name: localPackageWithMainModule!.Module!.Path,
-        version: projectVersion,
-      },
-    );
+    const root: PkgInfo = {
+      name: localPackageWithMainModule!.Module!.Path,
+      version: projectVersion,
+      purl: withPurl
+        ? constructPurl(
+            localPackageWithMainModule!.Module!,
+            localPackageWithMainModule!.Module!.Path,
+          )
+        : undefined,
+    };
+
+    depGraphBuilder = new DepGraphBuilder({ name: 'gomodules' }, root);
   }
   const topLevelDeps = extractAllImports(localPackages);
 
@@ -569,6 +579,8 @@ export async function buildDepGraphFromImportsAndModules(
     'root-node',
     childrenChain,
     ancestorsChain,
+    undefined,
+    withPurl,
   );
 
   return depGraphBuilder.build();
@@ -601,6 +613,7 @@ function buildGraph(
   childrenChain: Map<string, string[]>,
   ancestorsChain: Map<string, string[]>,
   visited?: Set<string>,
+  withPurl: boolean = false,
 ) {
   const depPackagesLen = depPackages.length;
 
@@ -617,18 +630,22 @@ function buildGraph(
     }
 
     const pkg = packagesByName[packageImport]!;
-    if (pkg.Module && pkg.Module.Version) {
+    const mod = pkg.Module?.Replace || pkg.Module;
+
+    if (mod?.Version) {
       // get hash (prefixed with #) or version (with v prefix removed)
-      version = toSnykVersion(
-        parseVersion(pkg.Module.Replace?.Version || pkg.Module.Version),
-      );
+      version = toSnykVersion(parseVersion(mod.Version));
     }
 
     if (currentParent && packageImport) {
-      const newNode = {
+      const newNode: PkgInfo = {
         name: packageImport,
         version,
       };
+
+      if (withPurl && mod) {
+        newNode.purl = constructPurl(mod, packageImport);
+      }
 
       const currentChildren = childrenChain.get(currentParent) || [];
       const currentAncestors = ancestorsChain.get(currentParent) || [];
@@ -667,6 +684,7 @@ function buildGraph(
           childrenChain,
           ancestorsChain,
           localVisited,
+          withPurl,
         );
       }
     }
@@ -725,4 +743,32 @@ function toSnykVersion(v: ModuleVersion): string {
   } else {
     throw new Error('Unexpected module version format');
   }
+}
+
+function constructPurl(mod: GoModule, importPath: string): string | undefined {
+  let namespace: string | undefined;
+  let name: string | undefined;
+  const version = mod.Version;
+  let subpath: string | undefined;
+
+  const idx = mod.Path.lastIndexOf('/');
+  if (idx < 0) {
+    name = mod.Path;
+  } else {
+    namespace = mod.Path.slice(0, idx);
+    name = mod.Path.slice(idx + 1);
+  }
+
+  if (importPath !== mod.Path) {
+    subpath = importPath.replace(`${mod.Path}/`, '');
+  }
+
+  return new PackageURL(
+    PURL_TYPE_GOLANG,
+    namespace,
+    name,
+    version,
+    null,
+    subpath,
+  ).toString();
 }
