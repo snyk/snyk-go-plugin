@@ -15,28 +15,32 @@
       "id": "github.com/stretchr/testify/assert@1.6.1",
       "info": {
         "name": "github.com/stretchr/testify/assert",
-        "version": "1.6.1"
+        "version": "1.6.1",
+        "purl": "pkg:golang/github.com/stretchr/testify@v1.6.1#assert"
       }
     },
     {
       "id": "gopkg.in/yaml.v3@#9f266ea9e77c",
       "info": {
         "name": "gopkg.in/yaml.v3",
-        "version": "#9f266ea9e77c"
+        "version": "#9f266ea9e77c",
+        "purl": "pkg:golang/gopkg.in/yaml.v3@v3.0.0-20200313102051-9f266ea9e77c"
       }
     },
     {
       "id": "github.com/pmezard/go-difflib/difflib@1.0.0",
       "info": {
         "name": "github.com/pmezard/go-difflib/difflib",
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "purl": "pkg:golang/github.com/pmezard/go-difflib@v1.0.0#difflib"
       }
     },
     {
       "id": "github.com/davecgh/go-spew/spew@1.1.0",
       "info": {
         "name": "github.com/davecgh/go-spew/spew",
-        "version": "1.1.0"
+        "version": "1.1.0",
+        "purl": "pkg:golang/github.com/davecgh/go-spew@v1.1.0#spew"
       }
     }
   ],

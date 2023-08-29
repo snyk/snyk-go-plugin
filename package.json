@@ -28,10 +28,11 @@
   "author": "snyk.io",
   "license": "Apache-2.0",
   "dependencies": {
-    "@snyk/dep-graph": "^2.7.2",
+    "@snyk/dep-graph": "^2.7.4",
     "@snyk/graphlib": "2.1.9-patch.3",
     "debug": "^4.1.1",
     "lookpath": "^1.2.2",
+    "packageurl-js": "^1.0.2",
     "snyk-go-parser": "1.13.0",
     "tmp": "0.2.1",
     "tslib": "^1.10.0"
