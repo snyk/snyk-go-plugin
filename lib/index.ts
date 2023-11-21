@@ -4,7 +4,8 @@ import * as tmp from 'tmp';
 import { lookpath } from 'lookpath';
 import debugLib = require('debug');
 import * as graphlib from '@snyk/graphlib';
-import { DepGraphBuilder, DepGraph } from '@snyk/dep-graph';
+import { DepGraphBuilder, DepGraph, PkgInfo } from '@snyk/dep-graph';
+import { PackageURL } from 'packageurl-js';
 
 import * as subProcess from './sub-process';
 import { CustomError } from './errors/custom-error';
@@ -20,6 +21,7 @@ import type { ModuleVersion } from 'snyk-go-parser';
 const debug = debugLib('snyk-go-plugin');
 
 const VIRTUAL_ROOT_NODE_ID = '.';
+const PURL_TYPE_GOLANG = 'golang';
 
 export interface DepDict {
   [name: string]: DepTree;
@@ -617,17 +619,18 @@ function buildGraph(
     }
 
     const pkg = packagesByName[packageImport]!;
-    if (pkg.Module && pkg.Module.Version) {
+    const mod = pkg.Module?.Replace || pkg.Module;
+
+    if (mod?.Version) {
       // get hash (prefixed with #) or version (with v prefix removed)
-      version = toSnykVersion(
-        parseVersion(pkg.Module.Replace?.Version || pkg.Module.Version),
-      );
+      version = toSnykVersion(parseVersion(mod.Version));
     }
 
     if (currentParent && packageImport) {
-      const newNode = {
+      const newNode: PkgInfo = {
         name: packageImport,
         version,
+        purl: mod ? constructPurl(mod, packageImport) : undefined,
       };
 
       const currentChildren = childrenChain.get(currentParent) || [];
@@ -725,4 +728,32 @@ function toSnykVersion(v: ModuleVersion): string {
   } else {
     throw new Error('Unexpected module version format');
   }
+}
+
+function constructPurl(mod: GoModule, importPath: string): string | undefined {
+  let namespace: string | undefined;
+  let name: string | undefined;
+  const version = mod.Version;
+  let subpath: undefined | string;
+
+  const idx = mod.Path.lastIndexOf('/');
+  if (idx < 0) {
+    name = mod.Path;
+  } else {
+    namespace = mod.Path.slice(0, idx);
+    name = mod.Path.slice(idx + 1);
+  }
+
+  if (importPath !== mod.Path) {
+    subpath = importPath.replace(`${mod.Path}/`, '');
+  }
+
+  return new PackageURL(
+    PURL_TYPE_GOLANG,
+    namespace,
+    name,
+    version,
+    null,
+    subpath,
+  ).toString();
 }
