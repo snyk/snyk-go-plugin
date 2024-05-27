@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
   win: circleci/windows@2.4.0
-  prodsec: snyk/prodsec-orb@1.0
+  prodsec: snyk/prodsec-orb@1
 
 defaults: &defaults
   parameters:
@@ -81,6 +81,19 @@ commands:
           command: choco install golang --version << parameters.go_version >> --allow-downgrade
 
 jobs:
+  security-scans:
+    resource_class: small
+    <<: *defaults
+    docker:
+      - image: cimg/node:<< parameters.node_version >>
+    steps:
+      - checkout
+      - install_deps
+      - prodsec/security_scans:
+          mode: auto
+          open-source-additional-arguments: --exclude=test
+          iac-scan: disabled
+
   lint:
     <<: *defaults
     docker:
@@ -148,6 +161,16 @@ workflows:
           context:
             - snyk-bot-slack
           channel: os-team-managed-alerts
+          filters:
+            branches:
+              ignore:
+                - main
+      - security-scans:
+          name: Security Scans
+          node_version: "18.15"
+          context:
+            - open_source-managed
+            - nodejs-install
       - lint:
           name: Lint
           context: nodejs-install
@@ -182,4 +205,4 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
