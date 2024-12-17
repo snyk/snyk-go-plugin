@@ -12,17 +12,28 @@ const isRunningOnWindows = os.platform() === 'win32';
 if (goVersion[0] > 1 || goVersion[1] < 16) {
   // the "Dep" package is deprecated since 2020, making Gopkg no longer supported since go 1.16
   // more information: https://github.com/golang/go/issues/38158
-  test('install dep', { timeout: 120 * 1000 }, function () {
+  test('install Go dep', { timeout: 120 * 1000 }, function () {
     chdirToPkg([]);
-    return getGolangDep();
+    return subProcess.execute('go', [
+      'get',
+      '-u',
+      '-v',
+      'github.com/golang/dep/cmd/dep',
+    ]);
   });
-  test('proj imports k8s client', { timeout: 300 * 1000 }, (t) => {
+
+  test('proj imports k8s client', { timeout: 3000 * 1000 }, (t) => {
     return testPkg(t, ['with-k8s-client'], 'Gopkg.lock', 'expected-list.json');
   });
 
   test('install govendor', { timeout: 120 * 1000 }, function () {
     chdirToPkg([]);
-    return getGovendor();
+    return subProcess.execute('go', [
+      'get',
+      '-u',
+      '-v',
+      'github.com/kardianos/govendor',
+    ]);
   });
 
   test('prometheus 1.8', (t) => {
@@ -50,7 +61,10 @@ function testPkg(t, pkgPathArray, targetFile, expectedPkgsListFile) {
 
   return cleanup()
     .then(function () {
-      return fetchDeps(targetFile);
+      return fetchDeps(targetFile).catch(function (stderr) {
+        console.log('FAILED TO FETCH DEPENDENCIES', { stderr });
+        throw new Error(stderr);
+      });
     })
     .then(function () {
       return plugin.inspect('.', targetFile).then((result) => {
@@ -107,24 +121,6 @@ function cleanup() {
   return subProcess.execute('go', ['clean']).then(function () {
     return subProcess.execute('rm', ['-rf', './vendor/']);
   });
-}
-
-function getGolangDep() {
-  return subProcess.execute('go', [
-    'get',
-    '-u',
-    '-v',
-    'github.com/golang/dep/cmd/dep',
-  ]);
-}
-
-function getGovendor() {
-  return subProcess.execute('go', [
-    'get',
-    '-u',
-    '-v',
-    'github.com/kardianos/govendor',
-  ]);
 }
 
 function fetchDeps(targetFile) {

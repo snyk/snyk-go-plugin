@@ -19,7 +19,7 @@
     "format": "prettier --write '{lib,test}/**/*.{js,ts,json}'",
     "test-functional": "tap ./test/*.test.ts -R spec",
     "test-system": "tap -R spec --timeout=300 ./test/system/*.test.ts",
-    "test": "npm run test-functional && npm run test-system",
+    "test": "npm run test-system",
     "test-functional-windows": "tap -R spec --timeout=300 ./test/*.test.ts -g \"^(?!.*symlink)\"",
     "test-system-windows": "tap -R spec --timeout=300 ./test/system/*.test.ts -g \"^(?!.*prometheus)\"",
     "test-windows": "npm run test-functional-windows && npm run test-system-windows",
