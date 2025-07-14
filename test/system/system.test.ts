@@ -15,17 +15,17 @@ console.log('This is the system.test.ts file', {
 });
 
 if (goVersion[0] > 1 || goVersion[1] < 16) {
-  console.log('less than 1.16');
+  console.log('--- less than 1.16');
   // the "Dep" package is deprecated since 2020, making Gopkg no longer supported since go 1.16
   // more information: https://github.com/golang/go/issues/38158
   test('install dep', { timeout: 120 * 1000 }, function () {
-    console.log('installing dep');
+    console.log('--- installing dep');
     chdirToPkg([]);
     return getGolangDep();
   });
 
   test('proj imports k8s client', { timeout: 300 * 1000 }, (t) => {
-    console.log('running proj imports k8s client');
+    console.log('--- running proj imports k8s client', t.name, t.title);
     return testPkg(t, ['with-k8s-client'], 'Gopkg.lock', 'expected-list.json');
   });
 
@@ -77,6 +77,7 @@ function testPkg(t, pkgPathArray, targetFile, expectedPkgsListFile) {
       });
     })
     .catch((err) => {
+      console.log('caught an error');
       console.error(err);
       console.log(err.stack);
       t.bailout(err);
@@ -142,6 +143,7 @@ function getGovendor() {
 
 function fetchDeps(targetFile) {
   if (targetFile.indexOf('Gopkg.lock') >= 0) {
+    console.log('--- installing from Gopkg.lock');
     return subProcess.execute(process.env['GOPATH'] + '/bin/dep', [
       'ensure',
       '-v',
