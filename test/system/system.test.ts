@@ -9,15 +9,23 @@ var plugin = require('../../lib');
 var subProcess = require('../../lib/sub-process');
 const isRunningOnWindows = os.platform() === 'win32';
 
+console.log('This is the system.test.ts file', {
+  goVersion,
+  isRunningOnWindows,
+});
+
 if (goVersion[0] > 1 || goVersion[1] < 16) {
+  console.log('less than 1.16');
   // the "Dep" package is deprecated since 2020, making Gopkg no longer supported since go 1.16
   // more information: https://github.com/golang/go/issues/38158
   test('install dep', { timeout: 120 * 1000 }, function () {
+    console.log('installing dep');
     chdirToPkg([]);
     return getGolangDep();
   });
 
   test('proj imports k8s client', { timeout: 300 * 1000 }, (t) => {
+    console.log('running proj imports k8s client');
     return testPkg(t, ['with-k8s-client'], 'Gopkg.lock', 'expected-list.json');
   });
 

@@ -1,1 +1,2 @@
 /test/fixtures/gopath/src/path/to/pkg-with-corrupt-govendor-json/vendor/vendor.json
+/test/fixtures/gopath/pkg/mod/**
