@@ -16,6 +16,7 @@ if (goVersion[0] > 1 || goVersion[1] < 16) {
     chdirToPkg([]);
     return getGolangDep();
   });
+
   test('proj imports k8s client', { timeout: 300 * 1000 }, (t) => {
     return testPkg(t, ['with-k8s-client'], 'Gopkg.lock', 'expected-list.json');
   });
@@ -50,12 +51,15 @@ function testPkg(t, pkgPathArray, targetFile, expectedPkgsListFile) {
 
   return cleanup()
     .then(function () {
+      console.log('fetching deps...');
       return fetchDeps(targetFile);
     })
     .then(function () {
+      console.log('running inspect()...');
       return plugin.inspect('.', targetFile).then((result) => {
         var pkg = result.package;
 
+        console.log('have results');
         t.ok(JSON.stringify(pkg).length < 2 * 1024 * 1024, 'result below 2MB');
         t.same(
           pkgsList(pkg).sort(),
@@ -65,6 +69,7 @@ function testPkg(t, pkgPathArray, targetFile, expectedPkgsListFile) {
       });
     })
     .catch((err) => {
+      console.error(err);
       console.log(err.stack);
       t.bailout(err);
     });
