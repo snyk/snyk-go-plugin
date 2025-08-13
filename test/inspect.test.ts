@@ -968,6 +968,22 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       );
     }
   });
+
+  test('with package urls', (t) => {
+    process.chdir(path.resolve(__dirname, 'fixtures', 'gomod-small'));
+
+    return plugin
+      .inspect('.', 'go.mod', { printGraph: true })
+      .then(function ({ dependencyGraph }) {
+        const expectedDepGraph = JSON.parse(
+          load('gomod-small/expected-gomodules-depgraph-with-purls.json'),
+        );
+        t.deepEquals(
+          JSON.stringify(dependencyGraph),
+          JSON.stringify(expectedDepGraph),
+        );
+      });
+  });
 }
 
 function chdirToPkg(pkgPathArray) {

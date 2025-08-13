@@ -39,7 +39,7 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       const depGraph = await buildDepGraphFromImportsAndModules(
         `${__dirname}/fixtures/golist/args`,
         'go.mod',
-        ['-e'],
+        { args: ['-e'] },
       );
       t.ok('should pass when -e argument is passed', depGraph);
     });
