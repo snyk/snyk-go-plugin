@@ -33,7 +33,7 @@
     "debug": "^4.1.1",
     "lookpath": "^1.2.2",
     "snyk-go-parser": "1.13.0",
-    "tmp": "0.2.1",
+    "tmp": "0.2.4",
     "tslib": "^1.10.0"
   },
   "devDependencies": {
