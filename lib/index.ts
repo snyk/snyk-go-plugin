@@ -610,7 +610,7 @@ function buildGraph(
     let version = 'unknown';
     if (isBuiltinPackage(packageImport)) {
       // We do not track vulns in Go standard library
-      continue;
+      // continue;
     } else if (!packagesByName[packageImport].DepOnly) {
       // Do not include packages of this module
       continue;
