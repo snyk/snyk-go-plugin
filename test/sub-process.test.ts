@@ -22,13 +22,13 @@ test('sub-process', (t) => {
 
     const result = await execute('env', []);
 
-    t.contains(result, 'HTTPS_PROXY=http://1.1.1.1');
-    t.contains(result, 'HTTP_PROXY=http://2.2.2.2');
-    t.contains(result, 'NO_PROXY=snyk.com');
+    t.ok(result.includes('HTTPS_PROXY=http://1.1.1.1'));
+    t.ok(result.includes('HTTP_PROXY=http://2.2.2.2'));
+    t.ok(result.includes('NO_PROXY=snyk.com'));
 
-    t.equals(process.env.HTTPS_PROXY, 'http://127.0.0.1');
-    t.equals(process.env.HTTP_PROXY, 'http://127.0.0.1');
-    t.equals(process.env.NO_PROXY, 'example.com');
+    t.equal(process.env.HTTPS_PROXY, 'http://127.0.0.1');
+    t.equal(process.env.HTTP_PROXY, 'http://127.0.0.1');
+    t.equal(process.env.NO_PROXY, 'example.com');
   });
 
   t.end();

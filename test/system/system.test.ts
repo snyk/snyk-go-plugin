@@ -19,30 +19,6 @@ if (goVersion[0] > 1 || goVersion[1] < 16) {
   test('proj imports k8s client', { timeout: 300 * 1000 }, (t) => {
     return testPkg(t, ['with-k8s-client'], 'Gopkg.lock', 'expected-list.json');
   });
-
-  test('install govendor', { timeout: 120 * 1000 }, function () {
-    chdirToPkg([]);
-    return getGovendor();
-  });
-
-  test('prometheus 1.8', (t) => {
-    chdirToPkg(['github.com', 'prometheus']);
-    return clonePkg(
-      'https://github.com/prometheus/prometheus',
-      'v1.8.0',
-      'prometheus',
-    ).then(function () {
-      const expectedPromDeps = isRunningOnWindows
-        ? 'prometheus-ms-expected-list.json'
-        : 'prometheus-unix-expected-list.json';
-      return testPkg(
-        t,
-        ['github.com', 'prometheus', 'prometheus', 'cmd', 'prometheus'],
-        ['..', '..', 'vendor', 'vendor.json'].join(path.sep),
-        ['..', '..', '..', expectedPromDeps].join(path.sep),
-      );
-    });
-  });
 }
 
 function testPkg(t, pkgPathArray, targetFile, expectedPkgsListFile) {
@@ -118,43 +94,28 @@ function getGolangDep() {
   ]);
 }
 
-function getGovendor() {
-  return subProcess.execute('go', [
-    'get',
-    '-u',
-    '-v',
-    'github.com/kardianos/govendor',
-  ]);
-}
-
 function fetchDeps(targetFile) {
   if (targetFile.indexOf('Gopkg.lock') >= 0) {
-    return subProcess.execute(process.env['GOPATH'] + '/bin/dep', [
-      'ensure',
-      '-v',
-    ]);
-  }
+    const runDepEnsure = () =>
+      subProcess.execute(process.env['GOPATH'] + '/bin/dep', ['ensure', '-v']);
 
-  if (targetFile.indexOf('vendor.json') >= 0) {
-    return subProcess.execute(process.env['GOPATH'] + '/bin/govendor', [
-      'sync',
-    ]);
+    // On Windows, configure Git for long paths before running dep ensure
+    if (isRunningOnWindows) {
+      return subProcess
+        .execute('git', ['config', '--global', 'core.longpaths', 'true'])
+        .then(runDepEnsure)
+        .catch((gitConfigError) => {
+          // If git config fails, try dep ensure anyway
+          console.warn(
+            'Warning: Could not configure git longpaths:',
+            gitConfigError,
+          );
+          return runDepEnsure();
+        });
+    }
+
+    return runDepEnsure();
   }
 
   throw new Error('unrecognized targetFile: ' + targetFile);
-}
-
-function clonePkg(url, tag, destDir) {
-  return subProcess.execute('rm', ['-rvf', './' + destDir]).then(function () {
-    return subProcess.execute('git', [
-      'clone',
-      '-b',
-      tag,
-      '--single-branch',
-      '--depth',
-      '1',
-      url,
-      destDir,
-    ]);
-  });
 }

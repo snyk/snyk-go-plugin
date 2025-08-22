@@ -1,4 +1,4 @@
-import * as plugin from '../lib';
+const plugin = require('../dist');
 
 function main() {
   const targetFile = process.argv[2];

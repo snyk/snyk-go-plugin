@@ -3,15 +3,10 @@
 
 /test/fixtures/gopath/pkg
 /test/fixtures/gopath/bin
-/test/fixtures/gopath/src/github.com/golang/dep
-/test/fixtures/gopath/src/github.com/kardianos/govendor
 
 /test/system/fixtures/gopath/.cache
 /test/system/fixtures/gopath/pkg
 /test/system/fixtures/gopath/bin
-/test/system/fixtures/gopath/src/github.com/golang/dep
-/test/system/fixtures/gopath/src/github.com/kardianos/govendor
-/test/system/fixtures/gopath/src/github.com/prometheus/prometheus
 /test/system/fixtures/gopath/src/**/vendor/*/
 
 dist/
