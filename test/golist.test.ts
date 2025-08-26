@@ -16,7 +16,7 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       const depGraphAndNotice = await buildDepGraphFromImportsAndModules(
         `${__dirname}/fixtures/golist/import`,
       );
-      t.deepEquals(
+      t.equal(
         JSON.stringify(depGraphAndNotice),
         JSON.stringify(expectedDepGraph),
       );
@@ -29,7 +29,7 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       const depGraphAndNotice = await buildDepGraphFromImportsAndModules(
         `${__dirname}/fixtures/golist/empty`,
       );
-      t.deepEquals(
+      t.equal(
         JSON.stringify(depGraphAndNotice),
         JSON.stringify(expectedDepGraph),
       );
@@ -55,7 +55,7 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       const depGraphAndNotice = await buildDepGraphFromImportsAndModules(
         `${__dirname}/fixtures/gomod-small`,
       );
-      t.deepEquals(
+      t.equal(
         JSON.stringify(depGraphAndNotice),
         JSON.stringify(expectedDepGraph),
       );
@@ -71,7 +71,7 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       const depGraphAndNotice = await buildDepGraphFromImportsAndModules(
         `${__dirname}/fixtures/gomod-replace`,
       );
-      t.deepEquals(
+      t.equal(
         JSON.stringify(depGraphAndNotice),
         JSON.stringify(expectedDepGraph),
       );
@@ -81,8 +81,8 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
 } else {
   test('go list parsing with module information', (t) => {
     t.rejects(
-      'throws on older Go versions',
       buildDepGraphFromImportsAndModules(`${__dirname}/fixtures/gomod-small`),
+      'throws on older Go versions',
     );
     t.end();
   });
