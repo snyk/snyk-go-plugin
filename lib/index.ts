@@ -43,6 +43,9 @@ interface Options {
   debug?: boolean;
   file?: string;
   args?: string[];
+  configuration?: {
+    includeGoStandardLibraryDeps?: boolean;
+  };
 }
 
 export async function inspect(root, targetFile, options: Options = {}) {
@@ -57,7 +60,7 @@ export async function inspect(root, targetFile, options: Options = {}) {
 
   const result = await Promise.all([
     getMetaData(root, targetFile),
-    getDependencies(root, targetFile, options.args),
+    getDependencies(root, targetFile, options),
   ]);
 
   const hasDepGraph = result[1].dependencyGraph && !result[1].dependencyTree;
@@ -148,13 +151,17 @@ const VENDOR_SYNC_CMD_BY_PKG_MANAGER: { [k in GoPackageManagerType]: string } =
     gomodules: 'go mod download',
   };
 
-async function getDependencies(root, targetFile, additionalArgs?: string[]) {
+async function getDependencies(root, targetFile, options: Options = {}) {
+  const { args: additionalArgs = [], configuration } = options;
+  const includeGoStandardLibraryDeps =
+    configuration?.includeGoStandardLibraryDeps ?? false;
   let tempDirObj;
   const packageManager = pkgManagerByTarget(targetFile);
   if (packageManager === 'gomodules') {
     const dependencyGraph = await buildDepGraphFromImportsAndModules(
       root,
       targetFile,
+      includeGoStandardLibraryDeps,
       additionalArgs,
     );
     return {
@@ -499,6 +506,7 @@ interface GoPackagesByName {
 export async function buildDepGraphFromImportsAndModules(
   root: string = '.',
   targetFile: string = 'go.mod',
+  includeGoStandardLibraryDeps: boolean = false,
   additionalArgs: string[] = [],
 ): Promise<DepGraph> {
   // TODO(BST-657): parse go.mod file to obtain root module name and go version
@@ -569,6 +577,7 @@ export async function buildDepGraphFromImportsAndModules(
     'root-node',
     childrenChain,
     ancestorsChain,
+    includeGoStandardLibraryDeps,
   );
 
   return depGraphBuilder.build();
@@ -600,6 +609,7 @@ function buildGraph(
   currentParent: string,
   childrenChain: Map<string, string[]>,
   ancestorsChain: Map<string, string[]>,
+  includeGoStandardLibraryDeps: boolean = false,
   visited?: Set<string>,
 ) {
   const depPackagesLen = depPackages.length;
@@ -608,8 +618,9 @@ function buildGraph(
     const localVisited = visited || new Set<string>();
     const packageImport = depPackages[i];
     let version = 'unknown';
-    if (isBuiltinPackage(packageImport)) {
-      // We do not track vulns in Go standard library
+
+    if (!includeGoStandardLibraryDeps && isBuiltinPackage(packageImport)) {
+      // We do not track vulns in Go standard library unless the flag includeGoStandardLibraryDeps is enabled
       continue;
     } else if (!packagesByName[packageImport].DepOnly) {
       // Do not include packages of this module
@@ -666,6 +677,7 @@ function buildGraph(
           packageImport,
           childrenChain,
           ancestorsChain,
+          includeGoStandardLibraryDeps,
           localVisited,
         );
       }
