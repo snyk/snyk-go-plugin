@@ -14,6 +14,7 @@ function withTempProject(
   return testFn(dirObj.name).finally(() => dirObj.removeCallback());
 }
 
+// When we find the toolchain version in the go.mod file
 test('resolveStdlibVersion picks toolchain from go.mod', async (t) => {
   await withTempProject(
     'module example.com\n\ntoolchain go1.22.2',
@@ -36,6 +37,29 @@ test('resolveStdlibVersion picks toolchain from go.mod', async (t) => {
   );
 });
 
+// When we find the go directive in the go.mod file
+test('resolveStdlibVersion picks go directive from go.mod', async (t) => {
+  await withTempProject(
+    'module example.com\n\ngo 1.21.7',
+    async (projectDir) => {
+      const { resolveStdlibVersion } = (t as any).mock('../lib/helpers', {
+        '../lib/sub-process': {
+          async execute() {
+            t.fail(
+              'subProcess.execute should not be called when go directive exists',
+            );
+            return '';
+          },
+        },
+      });
+
+      const version = await resolveStdlibVersion(projectDir, 'go.mod');
+      t.equal(version, '1.21.7', 'extracts version from go directive');
+    },
+  );
+});
+
+// When we don't find the toolchain or go directive in the go.mod file, we fall back to `go version`
 test('resolveStdlibVersion falls back to `go version`', async (t) => {
   await withTempProject('module example.com', async (projectDir) => {
     const fakeGoVersion = 'go version go1.19.7 linux/amd64';

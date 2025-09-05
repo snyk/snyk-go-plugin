@@ -18,7 +18,7 @@ export async function resolveStdlibVersion(
   root: string,
   targetFile: string,
 ): Promise<string> {
-  // 1) Try to read from go.mod `toolchain goX.Y.Z`
+  // 1) Try to read from go.mod the toolchian version e.g.`toolchain goX.Y.Z`
   let toolChainMatch: RegExpMatchArray | null = null;
 
   try {
@@ -34,8 +34,23 @@ export async function resolveStdlibVersion(
     debug('Failed to read toolchain from go.mod', { toolChainMatch });
   }
 
-  // 2) Fallback to `go version` if toolchian was not found in the go.mod file
+  // 2) Try to read from go.mod the go version e.g. `go X.Y.Z`
+  let goDirectiveMatch: RegExpMatchArray | null = null;
 
+  try {
+    const goModPath = path.resolve(root, targetFile);
+    const goModContent = fs.readFileSync(goModPath, 'utf8');
+    goDirectiveMatch = /^\s*go\s+(\d+(?:\.\d+){0,2})/m.exec(goModContent);
+    if (goDirectiveMatch) {
+      debug('Found go directive in go.mod', { goDirectiveMatch });
+      return goDirectiveMatch[1];
+    }
+  } catch {
+    // ignore, fall back to 3)
+    debug('Failed to read go directive from go.mod', { goDirectiveMatch });
+  }
+
+  // 3) Fallback to `go version` command (legacy behaviour)
   let goVerOutput = '';
 
   try {
