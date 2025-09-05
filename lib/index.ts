@@ -7,6 +7,7 @@ import * as graphlib from '@snyk/graphlib';
 import { DepGraphBuilder, DepGraph } from '@snyk/dep-graph';
 
 import * as subProcess from './sub-process';
+import { resolveStdlibVersion } from './helpers';
 import { CustomError } from './errors/custom-error';
 
 import {
@@ -155,6 +156,12 @@ async function getDependencies(root, targetFile, options: Options = {}) {
   const { args: additionalArgs = [], configuration } = options;
   const includeGoStandardLibraryDeps =
     configuration?.includeGoStandardLibraryDeps ?? false;
+
+  // Determine stdlib version
+  const stdlibVersion = includeGoStandardLibraryDeps
+    ? await resolveStdlibVersion(root, targetFile)
+    : 'unknown';
+
   let tempDirObj;
   const packageManager = pkgManagerByTarget(targetFile);
   if (packageManager === 'gomodules') {
@@ -163,6 +170,7 @@ async function getDependencies(root, targetFile, options: Options = {}) {
       targetFile,
       includeGoStandardLibraryDeps,
       additionalArgs,
+      stdlibVersion,
     );
     return {
       dependencyGraph,
@@ -508,6 +516,7 @@ export async function buildDepGraphFromImportsAndModules(
   targetFile: string = 'go.mod',
   includeGoStandardLibraryDeps: boolean = false,
   additionalArgs: string[] = [],
+  stdlibVersion: string,
 ): Promise<DepGraph> {
   // TODO(BST-657): parse go.mod file to obtain root module name and go version
   const projectName = path.basename(root); // The correct name should come from the `go list` command
@@ -578,6 +587,7 @@ export async function buildDepGraphFromImportsAndModules(
     childrenChain,
     ancestorsChain,
     includeGoStandardLibraryDeps,
+    stdlibVersion,
   );
 
   return depGraphBuilder.build();
@@ -610,6 +620,7 @@ function buildGraph(
   childrenChain: Map<string, string[]>,
   ancestorsChain: Map<string, string[]>,
   includeGoStandardLibraryDeps: boolean = false,
+  stdlibVersion: string,
   visited?: Set<string>,
 ) {
   const depPackagesLen = depPackages.length;
@@ -619,9 +630,12 @@ function buildGraph(
     const packageImport = depPackages[i];
     let version = 'unknown';
 
-    if (!includeGoStandardLibraryDeps && isBuiltinPackage(packageImport)) {
-      // We do not track vulns in Go standard library unless the flag includeGoStandardLibraryDeps is enabled
-      continue;
+    if (isBuiltinPackage(packageImport)) {
+      if (!includeGoStandardLibraryDeps) {
+        // We do not track vulns in Go standard library unless the flag includeGoStandardLibraryDeps is enabled
+        continue;
+      }
+      version = stdlibVersion;
     } else if (!packagesByName[packageImport].DepOnly) {
       // Do not include packages of this module
       continue;
@@ -678,6 +692,7 @@ function buildGraph(
           childrenChain,
           ancestorsChain,
           includeGoStandardLibraryDeps,
+          stdlibVersion,
           localVisited,
         );
       }
