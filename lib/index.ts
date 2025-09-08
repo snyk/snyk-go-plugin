@@ -630,18 +630,26 @@ function buildGraph(
     const packageImport = depPackages[i];
     let version = 'unknown';
 
+    // ---------- Standard library handling ----------
     if (isBuiltinPackage(packageImport)) {
       if (!includeGoStandardLibraryDeps) {
-        // We do not track vulns in Go standard library unless the flag includeGoStandardLibraryDeps is enabled
-        continue;
+        continue; // skip when flag disabled
       }
-      version = stdlibVersion;
-    } else if (!packagesByName[packageImport].DepOnly) {
-      // Do not include packages of this module
+
+      // create synthetic node and connect, then continue loop
+      const stdNode = { name: packageImport, version: stdlibVersion };
+      depGraphBuilder.addPkgNode(stdNode, packageImport);
+      depGraphBuilder.connectDep(currentParent, packageImport);
       continue;
     }
 
-    const pkg = packagesByName[packageImport]!;
+    // ---------- External package handling ----------
+    const pkgMeta = packagesByName[packageImport];
+    if (!pkgMeta || !pkgMeta.DepOnly) {
+      continue; // skip local or root-module packages
+    }
+
+    const pkg = pkgMeta;
     if (pkg.Module && pkg.Module.Version) {
       // get hash (prefixed with #) or version (with v prefix removed)
       version = toSnykVersion(
@@ -699,6 +707,9 @@ function buildGraph(
     }
   }
 }
+
+// Export for unit-tests
+export { buildGraph };
 
 function extractAllImports(goDeps: GoPackage[]): string[] {
   const goDepsImports = new Set<string>();
