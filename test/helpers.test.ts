@@ -1,8 +1,11 @@
 import { test } from 'tap';
 import * as path from 'path';
 import { resolveStdlibVersion } from '../lib/helpers';
+import { goVersion } from './go-version';
 
 const targetFile = 'go.mod';
+
+const localGoVersion = `${goVersion[0]}.${goVersion[1]}.${goVersion[2]}`;
 
 // When we find the toolchain version in the go.mod file
 test('resolveStdlibVersion picks toolchain from go.mod', async (t) => {
@@ -15,5 +18,5 @@ test('resolveStdlibVersion picks toolchain from go.mod', async (t) => {
 test('resolveStdlibVersion picks go directive from go.mod', async (t) => {
   const projectDir = path.join(__dirname, 'fixtures', 'gomod-simple');
   const version = await resolveStdlibVersion(projectDir, targetFile);
-  t.ok(version.startsWith('1.'), 'extracts version from go directive');
+  t.equal(version, localGoVersion, 'extracts version from go directive');
 });

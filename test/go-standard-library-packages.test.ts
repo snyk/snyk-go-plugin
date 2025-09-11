@@ -20,6 +20,7 @@ async function fetchGraph(fixture: string, includeStd: boolean) {
 
 const [major, minor] = goVersion;
 const skipTest = major < 1 || (major === 1 && minor < 21);
+const localGoVersion = `${goVersion[0]}.${goVersion[1]}.${goVersion[2]}`;
 
 // Test gomodules with the toolchain specified in go.mod
 test(
@@ -48,8 +49,9 @@ test(
 test('std-lib inclusion flag works for fixture: gomod-simple', async (t) => {
   const graphWith = await fetchGraph('gomod-simple', true);
   const verDir = graphWith.getPkgs().find((p) => p.name === 'std/fmt')?.version;
-  t.ok(
-    verDir?.startsWith('1.'),
+  t.equal(
+    verDir,
+    localGoVersion,
     'fmt present with correct version when flag on',
   );
 
