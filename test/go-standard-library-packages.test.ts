@@ -2,7 +2,7 @@
 import { test } from 'tap';
 import * as path from 'path';
 import { inspect } from '../lib';
-import { goVersion } from './go-version';
+import { goVersion, fullGoVersion } from './go-version';
 
 const targetFile = 'go.mod';
 

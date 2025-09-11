@@ -1,6 +1,7 @@
 import { test } from 'tap';
 import * as path from 'path';
 import { resolveStdlibVersion } from '../lib/helpers';
+import { goVersion, fullGoVersion } from './go-version';
 
 const targetFile = 'go.mod';
 

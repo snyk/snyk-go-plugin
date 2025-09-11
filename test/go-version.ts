@@ -12,3 +12,14 @@ export const goVersion = (() => {
     throw new Error('go appears to be not installed: ' + e);
   }
 })();
+
+export const fullGoVersion = (() => {
+  try {
+    const versionString = child_process
+      .execSync('go version', { encoding: 'utf8' })
+      .match(/\d+\.\d+(\.\d+)?/)![0];
+    return versionString;
+  } catch (e) {
+    throw new Error('go appears to be not installed: ' + e);
+  }
+})();
