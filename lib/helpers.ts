@@ -34,38 +34,12 @@ export async function resolveStdlibVersion(
     debug('Failed to read toolchain from go.mod', { toolChainMatch });
   }
 
-  // 2) Try to read from go.mod the go version e.g. `go X.Y.Z`
-  let goDirectiveMatch: RegExpMatchArray | null = null;
-
-  try {
-    const goModPath = path.resolve(root, targetFile);
-    const goModContent = fs.readFileSync(goModPath, 'utf8');
-    goDirectiveMatch = /^\s*go\s+(\d+(?:\.\d+){0,2})/m.exec(goModContent);
-    if (goDirectiveMatch) {
-      debug('Found go directive in go.mod', { goDirectiveMatch });
-      return goDirectiveMatch[1];
-    }
-  } catch {
-    // ignore, fall back to 3)
-    debug('Failed to read go directive from go.mod', { goDirectiveMatch });
-  }
-
-  // 3) Fallback to `go version` command (legacy behaviour)
-  let goVerOutput = '';
-
-  try {
-    goVerOutput = await subProcess.execute('go', ['version'], {
-      cwd: root,
-    });
-    // accept go1, go1.22, go1.22.2 and prereleases like go1.22rc1
-    const match = /(go\d+(?:\.\d+){0,2}[a-z0-9]*)/.exec(goVerOutput);
-    if (match) {
-      debug('Found go version', { goVerOutput });
-      return match[1].replace(/^go/, '');
-    }
-  } catch {
-    // leave as unknown
-    debug('failed to read go version', { goVerOutput });
+  // 2) Try to read from the `go version` command output
+  const output = await subProcess.execute('go', ['version'], { cwd: root });
+  const versionMatch = /\d+\.\d+(\.\d+)?/.exec(output)![0];
+  if (versionMatch) {
+    debug('Found go version', { versionMatch });
+    return versionMatch; // already without the "go" prefix
   }
 
   return 'unknown';
