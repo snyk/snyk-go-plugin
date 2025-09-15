@@ -620,26 +620,29 @@ function buildGraph(
   childrenChain: Map<string, string[]>,
   ancestorsChain: Map<string, string[]>,
   includeGoStandardLibraryDeps: boolean = false,
-  stdlibVersion: string,
+  stdLibVersion: string,
   visited?: Set<string>,
 ) {
-  const depPackagesLen = depPackages.length;
+  const depPackagesLen: number = depPackages.length;
 
   for (let i = depPackagesLen - 1; i >= 0; i--) {
     const localVisited = visited || new Set<string>();
-    const packageImport = depPackages[i];
+    const packageImport: string = depPackages[i];
     let version = 'unknown';
 
     // ---------- Standard library handling ----------
-    if (isBuiltinPackage(packageImport)) {
+    if (isStandardLibraryPackage(packagesByName[packageImport])) {
       if (!includeGoStandardLibraryDeps) {
         continue; // skip when flag disabled
       }
 
+      // All standard library packages are prefixed with "std/"
+      const stdPackageName = `std/${packageImport}`;
+
       // create synthetic node and connect, then continue loop
-      const stdNode = { name: packageImport, version: stdlibVersion };
-      depGraphBuilder.addPkgNode(stdNode, packageImport);
-      depGraphBuilder.connectDep(currentParent, packageImport);
+      const stdNode = { name: stdPackageName, version: stdLibVersion };
+      depGraphBuilder.addPkgNode(stdNode, stdPackageName);
+      depGraphBuilder.connectDep(currentParent, stdPackageName);
       continue;
     }
 
@@ -700,7 +703,7 @@ function buildGraph(
           childrenChain,
           ancestorsChain,
           includeGoStandardLibraryDeps,
-          stdlibVersion,
+          stdLibVersion,
           localVisited,
         );
       }
@@ -733,9 +736,9 @@ export function jsonParse(s: string) {
   }
 }
 
-function isBuiltinPackage(pkgName: string): boolean {
-  // Non-builtin packages have domain names in them that contain dots
-  return pkgName.indexOf('.') === -1;
+function isStandardLibraryPackage(pkgName: GoPackage): boolean {
+  // Go Standard Library Packages are marked as Standard: true
+  return pkgName?.Standard === true;
 }
 
 const rePseudoVersion = /(v\d+\.\d+\.\d+)-(.*?)(\d{14})-([0-9a-f]{12})/;
