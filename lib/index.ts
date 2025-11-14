@@ -17,6 +17,8 @@ import {
   GoPackageConfig,
 } from 'snyk-go-parser';
 import type { ModuleVersion } from 'snyk-go-parser';
+// TODO: export LockedDeps from snyk-go-parser
+import { LockedDeps } from 'snyk-go-parser/dist/types';
 
 const debug = debugLib('snyk-go-plugin');
 
@@ -49,7 +51,21 @@ interface Options {
   };
 }
 
-export async function inspect(root, targetFile, options: Options = {}) {
+interface DepGraphResult {
+  plugin: PluginMetadata;
+  dependencyGraph: DepGraph;
+}
+
+interface DepTreeResult {
+  plugin: PluginMetadata;
+  package: DepTree;
+}
+
+export async function inspect(
+  root: string,
+  targetFile: string,
+  options: Options = {},
+): Promise<DepGraphResult | DepTreeResult> {
   options.debug ? debugLib.enable('snyk-go-plugin') : debugLib.disable();
 
   const goPath = await lookpath('go');
@@ -59,24 +75,23 @@ export async function inspect(root, targetFile, options: Options = {}) {
     );
   }
 
-  const result = await Promise.all([
-    getMetaData(root, targetFile),
+  const [metadata, deps] = await Promise.all([
+    getMetadata(root, targetFile),
     getDependencies(root, targetFile, options),
   ]);
 
-  const hasDepGraph = result[1].dependencyGraph && !result[1].dependencyTree;
-  const hasDepTree = !result[1].dependencyGraph && result[1].dependencyTree;
+  if (deps.dependencyGraph) {
+    return {
+      plugin: metadata,
+      dependencyGraph: deps.dependencyGraph,
+    };
+  }
 
   // TODO @boost: get rid of the rest of depTree and fully convert this plugin to use depGraph
-  if (hasDepGraph) {
+  if (deps.dependencyTree) {
     return {
-      plugin: result[0],
-      dependencyGraph: result[1].dependencyGraph,
-    };
-  } else if (hasDepTree) {
-    return {
-      plugin: result[0],
-      package: result[1].dependencyTree,
+      plugin: metadata,
+      package: deps.dependencyTree,
     };
   }
 
@@ -84,7 +99,16 @@ export async function inspect(root, targetFile, options: Options = {}) {
   throw new Error('Failed to scan this go project.');
 }
 
-async function getMetaData(root, targetFile) {
+interface PluginMetadata {
+  name: string;
+  runtime: string | undefined;
+  targetFile: any;
+}
+
+async function getMetadata(
+  root: string,
+  targetFile: string,
+): Promise<PluginMetadata> {
   const output = await subProcess.execute('go', ['version'], { cwd: root });
   const versionMatch = /(go\d+\.?\d+?\.?\d*)/.exec(output);
   const runtime = versionMatch ? versionMatch[0] : undefined;
@@ -96,13 +120,13 @@ async function getMetaData(root, targetFile) {
   };
 }
 
-function createAssets() {
+function createAssets(): [string] {
   // path.join calls have to be exactly in this format, needed by "pkg" to build a standalone Snyk CLI binary:
   // https://www.npmjs.com/package/pkg#detecting-assets-in-source-code
   return [path.join(__dirname, '../gosrc/resolve-deps.go')];
 }
 
-function writeFile(writeFilePath, contents) {
+function writeFile(writeFilePath: string, contents: NonSharedBuffer): void {
   const dirPath = path.dirname(writeFilePath);
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath);
@@ -110,7 +134,7 @@ function writeFile(writeFilePath, contents) {
   fs.writeFileSync(writeFilePath, contents);
 }
 
-function getFilePathRelativeToDumpDir(filePath) {
+function getFilePathRelativeToDumpDir(filePath: string): string {
   let pathParts = filePath.split('\\gosrc\\');
 
   // Windows
@@ -123,7 +147,7 @@ function getFilePathRelativeToDumpDir(filePath) {
   return pathParts[1];
 }
 
-function dumpAllResolveDepsFilesInTempDir(tempDirName) {
+function dumpAllResolveDepsFilesInTempDir(tempDirName: string): void {
   createAssets().forEach((currentReadFilePath) => {
     if (!fs.existsSync(currentReadFilePath)) {
       throw new Error('The file `' + currentReadFilePath + '` is missing');
@@ -152,8 +176,13 @@ const VENDOR_SYNC_CMD_BY_PKG_MANAGER: { [k in GoPackageManagerType]: string } =
     gomodules: 'go mod download',
   };
 
-async function getDependencies(root, targetFile, options: Options = {}) {
+async function getDepGraph(
+  root: string,
+  targetFile: string,
+  options: Options = {},
+): Promise<DepGraph> {
   const { args: additionalArgs = [], configuration } = options;
+
   const includeGoStandardLibraryDeps =
     configuration?.includeGoStandardLibraryDeps ?? false;
 
@@ -162,32 +191,43 @@ async function getDependencies(root, targetFile, options: Options = {}) {
     ? await resolveStdlibVersion(root, targetFile)
     : 'unknown';
 
-  let tempDirObj;
-  const packageManager = pkgManagerByTarget(targetFile);
-  if (packageManager === 'gomodules') {
-    const dependencyGraph = await buildDepGraphFromImportsAndModules(
-      root,
-      targetFile,
-      includeGoStandardLibraryDeps,
-      additionalArgs,
-      stdlibVersion,
-    );
-    return {
-      dependencyGraph,
-    };
-  }
+  return buildDepGraphFromImportsAndModules(
+    root,
+    targetFile,
+    includeGoStandardLibraryDeps,
+    additionalArgs,
+    stdlibVersion,
+  );
+}
 
+async function getDependencies(
+  root: string,
+  targetFile: string,
+  options: Options = {},
+): Promise<{ dependencyGraph?: DepGraph; dependencyTree?: DepTree }> {
+  switch (pkgManagerByTarget(targetFile)) {
+    case 'gomodules':
+      return {
+        dependencyGraph: await getDepGraph(root, targetFile, options),
+      };
+    default:
+      return {
+        dependencyTree: await getDepTree(root, targetFile),
+      };
+  }
+}
+
+async function getDepTree(root: string, targetFile: string): Promise<DepTree> {
+  let tempDirObj: tmp.DirResult | undefined;
   try {
     debug('parsing manifest/lockfile', { root, targetFile });
     const config = await parseConfig(root, targetFile);
-    tempDirObj = tmp.dirSync({
-      unsafeCleanup: true,
-    });
+    tempDirObj = tmp.dirSync({ unsafeCleanup: true });
 
     dumpAllResolveDepsFilesInTempDir(tempDirObj.name);
 
     const goResolveTool = path.join(tempDirObj.name, 'resolve-deps.go');
-    let ignorePkgsParam;
+    let ignorePkgsParam = '';
     if (config.ignoredPkgs && config.ignoredPkgs.length > 0) {
       ignorePkgsParam = '-ignoredPkgs=' + config.ignoredPkgs.join(',');
     }
@@ -239,7 +279,7 @@ async function getDependencies(root, targetFile, options: Options = {}) {
     pkgsTree.packageFormatVersion = 'golang:0.0.1';
     debug('done building dep-tree', { rootPkgName: pkgsTree.name });
 
-    return { dependencyTree: pkgsTree };
+    return pkgsTree;
   } catch (error) {
     if (tempDirObj) {
       tempDirObj.removeCallback();
@@ -261,16 +301,16 @@ async function getDependencies(root, targetFile, options: Options = {}) {
   }
 }
 
-function pkgManagerByTarget(targetFile): GoPackageManagerType {
+function pkgManagerByTarget(targetFile: string): GoPackageManagerType {
   const fname = path.basename(targetFile);
   return PACKAGE_MANAGER_BY_TARGET[fname];
 }
 
-function syncCmdForTarget(targetFile) {
+function syncCmdForTarget(targetFile: string): string {
   return VENDOR_SYNC_CMD_BY_PKG_MANAGER[pkgManagerByTarget(targetFile)];
 }
 
-function getProjectRootFromTargetFile(targetFile) {
+function getProjectRootFromTargetFile(targetFile: string): string {
   const resolved = path.resolve(targetFile);
   const parts = resolved.split(path.sep);
 
@@ -293,10 +333,10 @@ function getProjectRootFromTargetFile(targetFile) {
 }
 
 function recursivelyBuildPkgTree(
-  graph,
-  node,
-  lockedVersions,
-  projectRootPath,
+  graph: graphlib.Graph,
+  node: any,
+  lockedVersions: LockedDeps,
+  projectRootPath: string,
   totalPackageOccurenceCounter: CountDict,
 ): DepTree {
   const isRoot = node.Name === VIRTUAL_ROOT_NODE_ID;
@@ -320,7 +360,7 @@ function recursivelyBuildPkgTree(
     pkg.version = lockedVersions[pkg.name].version;
   }
 
-  const children = graph.successors(node.Name).sort();
+  const children = (graph.successors(node.Name) || []).sort();
   children.forEach((depName) => {
     // We drop whole dep tree branches for frequently repeatedpackages:
     // this loses some paths, but avoids explosion in result size
@@ -400,7 +440,7 @@ function isProjSubpackage(pkgPath, projectRootPath) {
 //   ignored: string[];
 // }
 
-async function parseConfig(root, targetFile): Promise<GoPackageConfig> {
+async function parseConfig(root: string, targetFile: string): Promise<GoPackageConfig> {
   const pkgManager = pkgManagerByTarget(targetFile);
   debug('detected package-manager:', pkgManager);
   switch (pkgManager) {
@@ -431,11 +471,11 @@ async function parseConfig(root, targetFile): Promise<GoPackageConfig> {
   }
 }
 
-function getDepLock(root, targetFile): string {
+function getDepLock(root: string, targetFile: string): string {
   return fs.readFileSync(path.join(root, targetFile), 'utf8');
 }
 
-function getDepManifest(root, targetFile): string {
+function getDepManifest(root: string, targetFile: string): string {
   const manifestDir = path.dirname(path.join(root, targetFile));
   const manifestPath = path.join(manifestDir, 'Gopkg.toml');
 
@@ -443,11 +483,11 @@ function getDepManifest(root, targetFile): string {
 }
 
 // TODO: branch, old Version can be a tag too?
-function getGovendorJson(root, targetFile): string {
+function getGovendorJson(root: string, targetFile: string): string {
   return fs.readFileSync(path.join(root, targetFile), 'utf8');
 }
 
-function pathToPosix(fpath) {
+function pathToPosix(fpath: string): string {
   const parts = fpath.split(path.sep);
   return parts.join(path.posix.sep);
 }
@@ -622,7 +662,7 @@ function buildGraph(
   includeGoStandardLibraryDeps: boolean = false,
   stdLibVersion: string,
   visited?: Set<string>,
-) {
+): void {
   const depPackagesLen: number = depPackages.length;
 
   for (let i = depPackagesLen - 1; i >= 0; i--) {
@@ -727,7 +767,7 @@ function extractAllImports(goDeps: GoPackage[]): string[] {
 }
 
 // Better error message than JSON.parse
-export function jsonParse(s: string) {
+export function jsonParse<T = any>(s: string): T {
   try {
     return JSON.parse(s);
   } catch (e: any) {
