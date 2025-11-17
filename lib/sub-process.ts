@@ -1,9 +1,16 @@
 import * as childProcess from 'child_process';
 
-export function execute(
+import { debug } from './debug';
+
+interface ExecOptions {
+  cwd?: string;
+  env?: any;
+}
+
+export async function execute(
   command: string,
   args: string[],
-  options?: { cwd?: string; env?: any },
+  options?: ExecOptions,
   shell: boolean = false,
 ): Promise<string> {
   const spawnOptions: childProcess.SpawnOptions = {
@@ -57,4 +64,23 @@ export function execute(
       resolve(stdout || stderr);
     });
   });
+}
+
+export async function runGo(
+  args: string[],
+  options: ExecOptions,
+  additionalGoCommands: string[] = [],
+): Promise<string> {
+  try {
+    return await execute('go', args, options);
+  } catch (err: any) {
+    const [command] = /(go mod download)|(go get [^"]*)/.exec(err) || [];
+    if (command && !additionalGoCommands.includes(command)) {
+      debug('running command:', command);
+      const newArgs = command.split(' ').slice(1);
+      await execute('go', newArgs, options);
+      return runGo(args, options, additionalGoCommands.concat(command));
+    }
+    throw err;
+  }
 }

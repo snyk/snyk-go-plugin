@@ -44,3 +44,18 @@ export async function resolveStdlibVersion(
 
   return 'unknown';
 }
+
+// Better error message than JSON.parse
+export function jsonParse<T = any>(s: string): T {
+  try {
+    return JSON.parse(s);
+  } catch (e: any) {
+    e.message = e.message + ', original string: "' + s + '"';
+    throw e;
+  }
+}
+
+export function pathToPosix(fpath: string): string {
+  const parts = fpath.split(path.sep);
+  return parts.join(path.posix.sep);
+}
