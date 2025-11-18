@@ -1,82 +1,60 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as tmp from 'tmp';
 import { lookpath } from 'lookpath';
-import debugLib = require('debug');
-import * as graphlib from '@snyk/graphlib';
-import { DepGraphBuilder, DepGraph } from '@snyk/dep-graph';
+import { DepGraph } from '@snyk/dep-graph';
 
-import * as subProcess from './sub-process';
-import { resolveStdlibVersion } from './helpers';
-import { CustomError } from './errors/custom-error';
-
+import { execute } from './sub-process';
+import { pathToPosix, jsonParse } from './helpers';
+import type {
+  Options,
+  PluginMetadata,
+  DepGraphResult,
+  DepTreeResult,
+  DepTree,
+  DepDict,
+} from './types';
+import { pkgManagerByTarget } from './pkg-manager';
+import { getDepTree } from './dep-tree';
 import {
-  parseGoPkgConfig,
-  parseGoVendorConfig,
-  GoPackageManagerType,
-  GoPackageConfig,
-} from 'snyk-go-parser';
-import type { ModuleVersion } from 'snyk-go-parser';
+  getDepGraph,
+  buildDepGraphFromImportsAndModules,
+  buildGraph,
+} from './dep-graph';
+import * as debug from './debug';
 
-const debug = debugLib('snyk-go-plugin');
+export async function inspect(
+  root: string,
+  targetFile: string,
+  options: Options = {},
+): Promise<DepGraphResult | DepTreeResult> {
+  if (options.debug) {
+    debug.enable();
+  } else {
+    debug.disable();
+  }
 
-const VIRTUAL_ROOT_NODE_ID = '.';
-
-export interface DepDict {
-  [name: string]: DepTree;
-}
-
-export interface DepTree {
-  name: string;
-  version?: string;
-  dependencies?: DepDict;
-  packageFormatVersion?: string;
-
-  _counts?: any;
-  _isProjSubpkg?: boolean;
-}
-
-interface CountDict {
-  [k: string]: number;
-}
-
-interface Options {
-  debug?: boolean;
-  file?: string;
-  args?: string[];
-  configuration?: {
-    includeGoStandardLibraryDeps?: boolean;
-  };
-}
-
-export async function inspect(root, targetFile, options: Options = {}) {
-  options.debug ? debugLib.enable('snyk-go-plugin') : debugLib.disable();
-
-  const goPath = await lookpath('go');
-  if (!goPath) {
+  const hasGoBinary = Boolean(await lookpath('go'));
+  if (!hasGoBinary) {
     throw new Error(
       'The "go" command is not available on your system. To scan your dependencies in the CLI, you must ensure you have first installed the relevant package manager.',
     );
   }
 
-  const result = await Promise.all([
-    getMetaData(root, targetFile),
+  const [metadata, deps] = await Promise.all([
+    getMetadata(root, targetFile),
     getDependencies(root, targetFile, options),
   ]);
 
-  const hasDepGraph = result[1].dependencyGraph && !result[1].dependencyTree;
-  const hasDepTree = !result[1].dependencyGraph && result[1].dependencyTree;
+  if (deps.dependencyGraph) {
+    return {
+      plugin: metadata,
+      dependencyGraph: deps.dependencyGraph,
+    };
+  }
 
   // TODO @boost: get rid of the rest of depTree and fully convert this plugin to use depGraph
-  if (hasDepGraph) {
+  if (deps.dependencyTree) {
     return {
-      plugin: result[0],
-      dependencyGraph: result[1].dependencyGraph,
-    };
-  } else if (hasDepTree) {
-    return {
-      plugin: result[0],
-      package: result[1].dependencyTree,
+      plugin: metadata,
+      package: deps.dependencyTree,
     };
   }
 
@@ -84,8 +62,11 @@ export async function inspect(root, targetFile, options: Options = {}) {
   throw new Error('Failed to scan this go project.');
 }
 
-async function getMetaData(root, targetFile) {
-  const output = await subProcess.execute('go', ['version'], { cwd: root });
+async function getMetadata(
+  root: string,
+  targetFile: string,
+): Promise<PluginMetadata> {
+  const output = await execute('go', ['version'], { cwd: root });
   const versionMatch = /(go\d+\.?\d+?\.?\d*)/.exec(output);
   const runtime = versionMatch ? versionMatch[0] : undefined;
 
@@ -96,674 +77,27 @@ async function getMetaData(root, targetFile) {
   };
 }
 
-function createAssets() {
-  // path.join calls have to be exactly in this format, needed by "pkg" to build a standalone Snyk CLI binary:
-  // https://www.npmjs.com/package/pkg#detecting-assets-in-source-code
-  return [path.join(__dirname, '../gosrc/resolve-deps.go')];
-}
-
-function writeFile(writeFilePath, contents) {
-  const dirPath = path.dirname(writeFilePath);
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath);
-  }
-  fs.writeFileSync(writeFilePath, contents);
-}
-
-function getFilePathRelativeToDumpDir(filePath) {
-  let pathParts = filePath.split('\\gosrc\\');
-
-  // Windows
-  if (pathParts.length > 1) {
-    return pathParts[1];
-  }
-
-  // Unix
-  pathParts = filePath.split('/gosrc/');
-  return pathParts[1];
-}
-
-function dumpAllResolveDepsFilesInTempDir(tempDirName) {
-  createAssets().forEach((currentReadFilePath) => {
-    if (!fs.existsSync(currentReadFilePath)) {
-      throw new Error('The file `' + currentReadFilePath + '` is missing');
-    }
-
-    const relFilePathToDumpDir =
-      getFilePathRelativeToDumpDir(currentReadFilePath);
-
-    const writeFilePath = path.join(tempDirName, relFilePathToDumpDir);
-
-    const contents = fs.readFileSync(currentReadFilePath);
-    writeFile(writeFilePath, contents);
-  });
-}
-
-const PACKAGE_MANAGER_BY_TARGET: { [k: string]: GoPackageManagerType } = {
-  'Gopkg.lock': 'golangdep',
-  'vendor.json': 'govendor',
-  'go.mod': 'gomodules',
-};
-
-const VENDOR_SYNC_CMD_BY_PKG_MANAGER: { [k in GoPackageManagerType]: string } =
-  {
-    golangdep: 'dep ensure',
-    govendor: 'govendor sync',
-    gomodules: 'go mod download',
-  };
-
-async function getDependencies(root, targetFile, options: Options = {}) {
-  const { args: additionalArgs = [], configuration } = options;
-  const includeGoStandardLibraryDeps =
-    configuration?.includeGoStandardLibraryDeps ?? false;
-
-  // Determine stdlib version
-  const stdlibVersion = includeGoStandardLibraryDeps
-    ? await resolveStdlibVersion(root, targetFile)
-    : 'unknown';
-
-  let tempDirObj;
-  const packageManager = pkgManagerByTarget(targetFile);
-  if (packageManager === 'gomodules') {
-    const dependencyGraph = await buildDepGraphFromImportsAndModules(
-      root,
-      targetFile,
-      includeGoStandardLibraryDeps,
-      additionalArgs,
-      stdlibVersion,
-    );
-    return {
-      dependencyGraph,
-    };
-  }
-
-  try {
-    debug('parsing manifest/lockfile', { root, targetFile });
-    const config = await parseConfig(root, targetFile);
-    tempDirObj = tmp.dirSync({
-      unsafeCleanup: true,
-    });
-
-    dumpAllResolveDepsFilesInTempDir(tempDirObj.name);
-
-    const goResolveTool = path.join(tempDirObj.name, 'resolve-deps.go');
-    let ignorePkgsParam;
-    if (config.ignoredPkgs && config.ignoredPkgs.length > 0) {
-      ignorePkgsParam = '-ignoredPkgs=' + config.ignoredPkgs.join(',');
-    }
-    const args = ['run', goResolveTool, ignorePkgsParam];
-    debug('executing go deps resolver', { cmd: 'go' + args.join(' ') });
-    const graphStr = await runGo(args, {
-      cwd: root,
-      env: { GO111MODULE: 'off' },
-    });
-    tempDirObj.removeCallback();
-    debug('loading deps resolver graph output to graphlib', {
-      jsonSize: graphStr.length,
-    });
-    const graph = graphlib.json.read(JSON.parse(graphStr));
-
-    if (!graphlib.alg.isAcyclic(graph)) {
-      throw new Error(
-        'Go import cycle detected (not allowed by the Go compiler)',
-      );
-    }
-
-    // A project can contain several "entry points",
-    // i.e. pkgs with no local dependants.
-    // To create a tree, we add edges from a "virutal root",
-    // to these source nodes.
-    const rootNode = graph.node(VIRTUAL_ROOT_NODE_ID);
-    if (!rootNode) {
-      throw new Error('Failed parsing dependency graph');
-    }
-
-    graph.sources().forEach((nodeId) => {
-      if (nodeId !== VIRTUAL_ROOT_NODE_ID) {
-        graph.setEdge(VIRTUAL_ROOT_NODE_ID, nodeId);
-      }
-    });
-
-    const projectRootPath = getProjectRootFromTargetFile(targetFile);
-
-    debug('building dep-tree');
-    const pkgsTree = recursivelyBuildPkgTree(
-      graph,
-      rootNode,
-      config.lockedVersions,
-      projectRootPath,
-      {},
-    );
-    delete pkgsTree._counts;
-
-    pkgsTree.packageFormatVersion = 'golang:0.0.1';
-    debug('done building dep-tree', { rootPkgName: pkgsTree.name });
-
-    return { dependencyTree: pkgsTree };
-  } catch (error) {
-    if (tempDirObj) {
-      tempDirObj.removeCallback();
-    }
-    if (typeof error === 'string') {
-      const unresolvedOffset = error.indexOf('Unresolved packages:');
-      if (unresolvedOffset !== -1) {
-        throw new Error(
-          error.slice(unresolvedOffset) +
-            '\n' +
-            'Unresolved imports found, please run `' +
-            syncCmdForTarget(targetFile) +
-            '`',
-        );
-      }
-      throw new Error(error);
-    }
-    throw error;
-  }
-}
-
-function pkgManagerByTarget(targetFile): GoPackageManagerType {
-  const fname = path.basename(targetFile);
-  return PACKAGE_MANAGER_BY_TARGET[fname];
-}
-
-function syncCmdForTarget(targetFile) {
-  return VENDOR_SYNC_CMD_BY_PKG_MANAGER[pkgManagerByTarget(targetFile)];
-}
-
-function getProjectRootFromTargetFile(targetFile) {
-  const resolved = path.resolve(targetFile);
-  const parts = resolved.split(path.sep);
-
-  if (parts[parts.length - 1] === 'Gopkg.lock') {
-    return path.dirname(resolved);
-  }
-
-  if (
-    parts[parts.length - 1] === 'vendor.json' &&
-    parts[parts.length - 2] === 'vendor'
-  ) {
-    return path.dirname(path.dirname(resolved));
-  }
-
-  if (parts[parts.length - 1] === 'go.mod') {
-    return path.dirname(resolved);
-  }
-
-  throw new Error('Unsupported file: ' + targetFile);
-}
-
-function recursivelyBuildPkgTree(
-  graph,
-  node,
-  lockedVersions,
-  projectRootPath,
-  totalPackageOccurenceCounter: CountDict,
-): DepTree {
-  const isRoot = node.Name === VIRTUAL_ROOT_NODE_ID;
-
-  const isProjSubpkg = isProjSubpackage(node.Dir, projectRootPath);
-
-  const pkg: DepTree = {
-    name: isRoot ? node.FullImportPath : node.Name,
-    dependencies: {},
-  };
-  if (!isRoot && isProjSubpkg) {
-    pkg._isProjSubpkg = true;
-  }
-
-  if (isRoot || isProjSubpkg) {
-    pkg.version = '';
-  } else if (!lockedVersions[pkg.name]) {
-    pkg.version = '';
-    // TODO: warn or set to "?" ?
-  } else {
-    pkg.version = lockedVersions[pkg.name].version;
-  }
-
-  const children = graph.successors(node.Name).sort();
-  children.forEach((depName) => {
-    // We drop whole dep tree branches for frequently repeatedpackages:
-    // this loses some paths, but avoids explosion in result size
-    if ((totalPackageOccurenceCounter[depName] || 0) > 10) {
-      return;
-    }
-
-    const dep = graph.node(depName);
-
-    const child = recursivelyBuildPkgTree(
-      graph,
-      dep,
-      lockedVersions,
-      projectRootPath,
-      totalPackageOccurenceCounter,
-    );
-
-    if (child._isProjSubpkg) {
-      Object.keys(child.dependencies!).forEach((grandChildName) => {
-        // We merge all the subpackages of the project into the root project, by transplanting dependencies of the
-        // subpackages one level up.
-        // This is done to decrease the tree size - and to be similar to other languages, where we are only showing
-        // dependencies at the project level, not at the level of individual code sub-directories (which Go packages
-        // are, essentially).
-        if (!pkg.dependencies![grandChildName]) {
-          pkg.dependencies![grandChildName] =
-            child.dependencies![grandChildName];
-        }
-      });
-      // Even though subpackages are not preserved in the result, we still need protection from combinatorial explosion
-      // while scanning the tree.
-      totalPackageOccurenceCounter[child.name] =
-        (totalPackageOccurenceCounter[child.name] || 0) + 1;
-    } else {
-      // in case was already added via a grandchild
-      if (!pkg.dependencies![child.name]) {
-        pkg.dependencies![child.name] = child;
-        totalPackageOccurenceCounter[child.name] =
-          (totalPackageOccurenceCounter[child.name] || 0) + 1;
-      }
-    }
-  });
-
-  return pkg;
-}
-
-function isProjSubpackage(pkgPath, projectRootPath) {
-  if (pkgPath === projectRootPath) {
-    return true;
-  }
-
-  let root = projectRootPath;
-  root = root[root.length - 1] === path.sep ? root : root + path.sep;
-
-  if (pkgPath.indexOf(root) !== 0) {
-    return false;
-  }
-
-  const pkgRelativePath = pkgPath.slice(root.length);
-  if (pkgRelativePath.split(path.sep).indexOf('vendor') !== -1) {
-    return false;
-  }
-
-  return true;
-}
-
-// interface LockedDep {
-//   name: string;
-//   version: string;
-// }
-//
-// interface LockedDeps {
-//   [dep: string]: LockedDep;
-// }
-//
-// interface DepManifest {
-//   ignored: string[];
-// }
-
-async function parseConfig(root, targetFile): Promise<GoPackageConfig> {
-  const pkgManager = pkgManagerByTarget(targetFile);
-  debug('detected package-manager:', pkgManager);
-  switch (pkgManager) {
-    case 'golangdep': {
-      try {
-        return await parseGoPkgConfig(
-          getDepManifest(root, targetFile),
-          getDepLock(root, targetFile),
-        );
-      } catch (e: any) {
-        throw new Error(
-          'failed parsing manifest/lock files for Go dep: ' + e.message,
-        );
-      }
-    }
-    case 'govendor': {
-      try {
-        return await parseGoVendorConfig(getGovendorJson(root, targetFile));
-      } catch (e: any) {
-        throw new Error(
-          'failed parsing config file for Go Vendor Tool: ' + e.message,
-        );
-      }
-    }
-    default: {
-      throw new Error('Unsupported file: ' + targetFile);
-    }
-  }
-}
-
-function getDepLock(root, targetFile): string {
-  return fs.readFileSync(path.join(root, targetFile), 'utf8');
-}
-
-function getDepManifest(root, targetFile): string {
-  const manifestDir = path.dirname(path.join(root, targetFile));
-  const manifestPath = path.join(manifestDir, 'Gopkg.toml');
-
-  return fs.readFileSync(manifestPath, 'utf8');
-}
-
-// TODO: branch, old Version can be a tag too?
-function getGovendorJson(root, targetFile): string {
-  return fs.readFileSync(path.join(root, targetFile), 'utf8');
-}
-
-function pathToPosix(fpath) {
-  const parts = fpath.split(path.sep);
-  return parts.join(path.posix.sep);
-}
-
-// https://golang.org/cmd/go/#hdr-List_packages_or_modules
-interface GoPackage {
-  Dir: string; // directory containing package sources
-  ImportPath: string; // import path of package in dir
-  ImportComment?: string; // path in import comment on package statement
-  Name: string; // package name
-  Doc?: string; // package documentation string
-  Target?: string; // install path
-  Shlib?: string; // the shared library that contains this package (only set when -linkshared)
-  Goroot?: boolean; // is this package in the Go root?
-  Standard?: boolean; // is this package part of the standard Go library?
-  Stale?: boolean; // would 'go install' do anything for this package?
-  StaleReason?: string; // explanation for Stale==true
-  Root?: string; // Go root or Go path dir containing this package
-  ConflictDir?: string; // this directory shadows Dir in $GOPATH
-  BinaryOnly?: boolean; // binary-only package: cannot be recompiled from sources
-  ForTest?: string; // package is only for use in named test
-  Export?: string; // file containing export data (when using -export)
-  Module?: GoModule; // info about package's containing module, if any (can be nil)
-  Match?: string[]; // command-line patterns matching this package
-  DepOnly?: boolean; // package is only a dependency, not explicitly listed
-  // Dependency information
-  Imports?: string[]; // import paths used by this package
-  ImportMap: { string: string }; // map from source import to ImportPath (identity entries omitted)
-  Deps: string[]; // all (recursively) imported dependencies
-  TestImports: string[]; // imports from TestGoFiles
-  XTestImports: string[]; // imports from XTestGoFiles
-  // Error information
-  Incomplete: boolean; // this package or a dependency has an error
-  Error: GoPackageError; // error loading package
-  DepsErrors: GoPackageError[]; // errors loading dependencies
-}
-
-// https://golang.org/cmd/go/#hdr-List_packages_or_modules
-interface GoModule {
-  Path: string; // module path
-  Version: string; // module version
-  Versions: string[]; // available module versions (with -versions)
-  Replace: GoModule; // replaced by this module
-  Time: string; // time version was created
-  Update: GoModule; // available update, if any (with -u)
-  Main: boolean; // is this the main module?
-  Indirect: boolean; // is this module only an indirect dependency of main module?
-  Dir: string; // directory holding files for this module, if any
-  GoMod: string; // path to go.mod file for this module, if any
-  Error: string; // error loading module
-}
-
-// https://golang.org/cmd/go/#hdr-List_packages_or_modules
-interface GoPackageError {
-  ImportStack: string[]; // shortest path from package named on command line to this one
-  Pos: string; // position of error (if present, file:line:col)
-  Err: string; // the error itself
-}
-
-interface GoPackagesByName {
-  [name: string]: GoPackage;
-}
-
-export async function buildDepGraphFromImportsAndModules(
-  root: string = '.',
-  targetFile: string = 'go.mod',
-  includeGoStandardLibraryDeps: boolean = false,
-  additionalArgs: string[] = [],
-  stdlibVersion: string,
-): Promise<DepGraph> {
-  // TODO(BST-657): parse go.mod file to obtain root module name and go version
-  const projectName = path.basename(root); // The correct name should come from the `go list` command
-  const projectVersion = '0.0.0'; // TODO(BST-657): try `git describe`?
-
-  let depGraphBuilder = new DepGraphBuilder(
-    { name: 'gomodules' },
-    {
-      name: projectName,
-      version: projectVersion,
-    },
-  );
-
-  let goDepsOutput: string;
-
-  const args = ['list', ...additionalArgs, '-json', '-deps', './...'];
-  try {
-    const goModAbsolutPath = path.resolve(root, path.dirname(targetFile));
-    goDepsOutput = await runGo(args, { cwd: goModAbsolutPath });
-  } catch (err: any) {
-    if (/cannot find main module, but found/.test(err)) {
-      return depGraphBuilder.build();
-    }
-    if (/does not contain main module/.test(err)) {
-      return depGraphBuilder.build();
-    }
-    const userError = new CustomError(err);
-    userError.userMessage = `'go ${args.join(
-      ' ',
-    )}' command failed with error: ${userError.message}`;
-    throw userError;
-  }
-
-  if (goDepsOutput.includes('matched no packages')) {
-    return depGraphBuilder.build();
-  }
-
-  const goDepsString = `[${goDepsOutput.replace(/}\r?\n{/g, '},{')}]`;
-  const goDeps: GoPackage[] = JSON.parse(goDepsString);
-  const packagesByName: GoPackagesByName = {};
-  for (const gp of goDeps) {
-    packagesByName[gp.ImportPath] = gp; // ImportPath is the fully qualified name
-  }
-
-  const localPackages = goDeps.filter((gp) => !gp.DepOnly);
-  const localPackageWithMainModule = localPackages.find(
-    (localPackage) => !!(localPackage.Module && localPackage.Module.Main),
-  );
-  if (localPackageWithMainModule && localPackageWithMainModule!.Module!.Path) {
-    depGraphBuilder = new DepGraphBuilder(
-      { name: 'gomodules' },
-      {
-        name: localPackageWithMainModule!.Module!.Path,
-        version: projectVersion,
-      },
-    );
-  }
-  const topLevelDeps = extractAllImports(localPackages);
-
-  const childrenChain = new Map();
-  const ancestorsChain = new Map();
-
-  buildGraph(
-    depGraphBuilder,
-    topLevelDeps,
-    packagesByName,
-    'root-node',
-    childrenChain,
-    ancestorsChain,
-    includeGoStandardLibraryDeps,
-    stdlibVersion,
-  );
-
-  return depGraphBuilder.build();
-}
-
-async function runGo(
-  args: string[],
-  options: any,
-  additionalGoCommands: string[] = [],
-): Promise<string> {
-  try {
-    return await subProcess.execute('go', args, options);
-  } catch (err: any) {
-    const [command] = /(go mod download)|(go get [^"]*)/.exec(err) || [];
-    if (command && !additionalGoCommands.includes(command)) {
-      debug('running command:', command);
-      const newArgs = command.split(' ').slice(1);
-      await subProcess.execute('go', newArgs, options);
-      return runGo(args, options, additionalGoCommands.concat(command));
-    }
-    throw err;
-  }
-}
-
-function buildGraph(
-  depGraphBuilder: DepGraphBuilder,
-  depPackages: string[],
-  packagesByName: GoPackagesByName,
-  currentParent: string,
-  childrenChain: Map<string, string[]>,
-  ancestorsChain: Map<string, string[]>,
-  includeGoStandardLibraryDeps: boolean = false,
-  stdLibVersion: string,
-  visited?: Set<string>,
-) {
-  const depPackagesLen: number = depPackages.length;
-
-  for (let i = depPackagesLen - 1; i >= 0; i--) {
-    const localVisited = visited || new Set<string>();
-    const packageImport: string = depPackages[i];
-    let version = 'unknown';
-
-    // ---------- Standard library handling ----------
-    if (isStandardLibraryPackage(packagesByName[packageImport])) {
-      if (!includeGoStandardLibraryDeps) {
-        continue; // skip when flag disabled
-      }
-
-      // All standard library packages are prefixed with "std/"
-      const stdPackageName = `std/${packageImport}`;
-
-      // create synthetic node and connect, then continue loop
-      const stdNode = { name: stdPackageName, version: stdLibVersion };
-      depGraphBuilder.addPkgNode(stdNode, stdPackageName);
-      depGraphBuilder.connectDep(currentParent, stdPackageName);
-      continue;
-    }
-
-    // ---------- External package handling ----------
-    const pkgMeta = packagesByName[packageImport];
-    if (!pkgMeta || !pkgMeta.DepOnly) {
-      continue; // skip local or root-module packages
-    }
-
-    const pkg = pkgMeta;
-    if (pkg.Module && pkg.Module.Version) {
-      // get hash (prefixed with #) or version (with v prefix removed)
-      version = toSnykVersion(
-        parseVersion(pkg.Module.Replace?.Version || pkg.Module.Version),
-      );
-    }
-
-    if (currentParent && packageImport) {
-      const newNode = {
-        name: packageImport,
-        version,
+async function getDependencies(
+  root: string,
+  targetFile: string,
+  options: Options = {},
+): Promise<{ dependencyGraph?: DepGraph; dependencyTree?: DepTree }> {
+  switch (pkgManagerByTarget(targetFile)) {
+    case 'gomodules':
+      return {
+        dependencyGraph: await getDepGraph(root, targetFile, options),
       };
-
-      const currentChildren = childrenChain.get(currentParent) || [];
-      const currentAncestors = ancestorsChain.get(currentParent) || [];
-      const isAncestorOrChild =
-        currentChildren.includes(packageImport) ||
-        currentAncestors.includes(packageImport);
-
-      // @TODO boost: breaking cycles,  re-work once dep-graph lib can handle cycles
-      if (packageImport === currentParent || isAncestorOrChild) {
-        continue;
-      }
-
-      if (localVisited.has(packageImport)) {
-        const prunedId = `${packageImport}:pruned`;
-        depGraphBuilder.addPkgNode(newNode, prunedId, {
-          labels: { pruned: 'true' },
-        });
-        depGraphBuilder.connectDep(currentParent, prunedId);
-        continue;
-      }
-
-      depGraphBuilder.addPkgNode(newNode, packageImport);
-      depGraphBuilder.connectDep(currentParent, packageImport);
-      localVisited.add(packageImport);
-
-      childrenChain.set(currentParent, [...currentChildren, packageImport]);
-      ancestorsChain.set(packageImport, [...currentAncestors, currentParent]);
-
-      const transitives = packagesByName[packageImport].Imports! || [];
-      if (transitives.length > 0) {
-        buildGraph(
-          depGraphBuilder,
-          transitives,
-          packagesByName,
-          packageImport,
-          childrenChain,
-          ancestorsChain,
-          includeGoStandardLibraryDeps,
-          stdLibVersion,
-          localVisited,
-        );
-      }
-    }
+    default:
+      return {
+        dependencyTree: await getDepTree(root, targetFile),
+      };
   }
 }
 
-// Export for unit-tests
-export { buildGraph };
-
-function extractAllImports(goDeps: GoPackage[]): string[] {
-  const goDepsImports = new Set<string>();
-  for (const pkg of goDeps) {
-    if (pkg.Imports) {
-      for (const imp of pkg.Imports) {
-        goDepsImports.add(imp);
-      }
-    }
-  }
-  return Array.from(goDepsImports);
-}
-
-// Better error message than JSON.parse
-export function jsonParse(s: string) {
-  try {
-    return JSON.parse(s);
-  } catch (e: any) {
-    e.message = e.message + ', original string: "' + s + '"';
-    throw e;
-  }
-}
-
-function isStandardLibraryPackage(pkgName: GoPackage): boolean {
-  // Go Standard Library Packages are marked as Standard: true
-  return pkgName?.Standard === true;
-}
-
-const rePseudoVersion = /(v\d+\.\d+\.\d+)-(.*?)(\d{14})-([0-9a-f]{12})/;
-const reExactVersion = /^(.*?)(\+incompatible)?$/;
-
-function parseVersion(versionString: string): ModuleVersion {
-  const maybeRegexMatch = rePseudoVersion.exec(versionString);
-  if (maybeRegexMatch) {
-    const [baseVersion, suffix, timestamp, hash] = maybeRegexMatch.slice(1);
-    return { baseVersion, suffix, timestamp, hash };
-  } else {
-    // No pseudo version recognized, assuming the provided version string is exact
-    const [exactVersion, incompatibleStr] = reExactVersion
-      .exec(versionString)!
-      .slice(1);
-    return { exactVersion, incompatible: !!incompatibleStr };
-  }
-}
-
-function toSnykVersion(v: ModuleVersion): string {
-  if ('hash' in v && v.hash) {
-    return '#' + v.hash;
-  } else if ('exactVersion' in v && v.exactVersion) {
-    return v.exactVersion.replace(/^v/, '');
-  } else {
-    throw new Error('Unexpected module version format');
-  }
-}
+export {
+  DepDict,
+  DepTree,
+  buildDepGraphFromImportsAndModules,
+  buildGraph,
+  jsonParse,
+};
