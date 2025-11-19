@@ -39,7 +39,9 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       const depGraph = await buildDepGraphFromImportsAndModules(
         `${__dirname}/fixtures/golist/args`,
         'go.mod',
-        ['-e'],
+        {
+          additionalArgs: ['-e'],
+        },
       );
       t.ok('should pass when -e argument is passed', depGraph);
     });
@@ -81,7 +83,13 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
 } else {
   test('go list parsing with module information', (t) => {
     t.rejects(
-      buildDepGraphFromImportsAndModules(`${__dirname}/fixtures/gomod-small`),
+      buildDepGraphFromImportsAndModules(
+        `${__dirname}/fixtures/gomod-small`,
+        undefined,
+        {
+          stdlibVersion: '1.10',
+        },
+      ),
       'throws on older Go versions',
     );
     t.end();

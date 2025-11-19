@@ -1,11 +1,12 @@
 import * as path from 'path';
-import { DepGraph, DepGraphBuilder } from '@snyk/dep-graph';
+import { DepGraph, DepGraphBuilder, PkgInfo } from '@snyk/dep-graph';
 
 import { resolveStdlibVersion } from './helpers';
-import { GoPackage, Options } from './types';
+import { GoModule, GoPackage, Options } from './types';
 import { CustomError } from './errors/custom-error';
 import { parseVersion, toSnykVersion } from './version';
 import { runGo } from './sub-process';
+import { createGoPurl, shouldIncludePackageUrls } from './package-url';
 
 export async function getDepGraph(
   root: string,
@@ -22,37 +23,53 @@ export async function getDepGraph(
     ? await resolveStdlibVersion(root, targetFile)
     : 'unknown';
 
-  return buildDepGraphFromImportsAndModules(
-    root,
-    targetFile,
-    includeGoStandardLibraryDeps,
-    additionalArgs,
+  const includePackageUrls = shouldIncludePackageUrls(options);
+
+  return buildDepGraphFromImportsAndModules(root, targetFile, {
     stdlibVersion,
-  );
+    additionalArgs,
+    includeGoStandardLibraryDeps,
+    includePackageUrls,
+  });
+}
+
+interface GraphOptions {
+  stdlibVersion?: string;
+  additionalArgs?: string[];
+  includeGoStandardLibraryDeps?: boolean;
+  includePackageUrls?: boolean;
 }
 
 export async function buildDepGraphFromImportsAndModules(
   root: string = '.',
   targetFile: string = 'go.mod',
-  includeGoStandardLibraryDeps: boolean = false,
-  additionalArgs: string[] = [],
-  stdlibVersion: string,
+  options: GraphOptions = {},
 ): Promise<DepGraph> {
   // TODO(BST-657): parse go.mod file to obtain root module name and go version
   const projectName = path.basename(root); // The correct name should come from the `go list` command
   const projectVersion = '0.0.0'; // TODO(BST-657): try `git describe`?
 
-  let depGraphBuilder = new DepGraphBuilder(
-    { name: 'gomodules' },
-    {
-      name: projectName,
-      version: projectVersion,
-    },
-  );
+  options = {
+    stdlibVersion: 'unknown',
+    additionalArgs: [],
+    includeGoStandardLibraryDeps: false,
+    includePackageUrls: false,
+    ...options,
+  };
+
+  let rootPkg = createPkgInfo(projectName, projectVersion, options);
+
+  let depGraphBuilder = new DepGraphBuilder({ name: 'gomodules' }, rootPkg);
 
   let goDepsOutput: string;
 
-  const args = ['list', ...additionalArgs, '-json', '-deps', './...'];
+  const args = [
+    'list',
+    ...(options.additionalArgs ?? []),
+    '-json',
+    '-deps',
+    './...',
+  ];
   try {
     const goModAbsolutPath = path.resolve(root, path.dirname(targetFile));
     goDepsOutput = await runGo(args, { cwd: goModAbsolutPath });
@@ -85,14 +102,13 @@ export async function buildDepGraphFromImportsAndModules(
   const localPackageWithMainModule = localPackages.find(
     (localPackage) => !!(localPackage.Module && localPackage.Module.Main),
   );
-  if (localPackageWithMainModule && localPackageWithMainModule!.Module!.Path) {
-    depGraphBuilder = new DepGraphBuilder(
-      { name: 'gomodules' },
-      {
-        name: localPackageWithMainModule!.Module!.Path,
-        version: projectVersion,
-      },
+  if (localPackageWithMainModule?.Module?.Path) {
+    rootPkg = createPkgInfo(
+      localPackageWithMainModule.Module.Path,
+      projectVersion,
+      options,
     );
+    depGraphBuilder = new DepGraphBuilder({ name: 'gomodules' }, rootPkg);
   }
   const topLevelDeps = extractAllImports(localPackages);
 
@@ -106,8 +122,7 @@ export async function buildDepGraphFromImportsAndModules(
     'root-node',
     childrenChain,
     ancestorsChain,
-    includeGoStandardLibraryDeps,
-    stdlibVersion,
+    options,
   );
 
   return depGraphBuilder.build();
@@ -120,8 +135,7 @@ export function buildGraph(
   currentParent: string,
   childrenChain: Map<string, string[]>,
   ancestorsChain: Map<string, string[]>,
-  includeGoStandardLibraryDeps: boolean = false,
-  stdLibVersion: string,
+  options: GraphOptions,
   visited?: Set<string>,
 ): void {
   const depPackagesLen: number = depPackages.length;
@@ -133,7 +147,7 @@ export function buildGraph(
 
     // ---------- Standard library handling ----------
     if (isStandardLibraryPackage(packagesByName[packageImport])) {
-      if (!includeGoStandardLibraryDeps) {
+      if (!options.includeGoStandardLibraryDeps) {
         continue; // skip when flag disabled
       }
 
@@ -141,7 +155,12 @@ export function buildGraph(
       const stdPackageName = `std/${packageImport}`;
 
       // create synthetic node and connect, then continue loop
-      const stdNode = { name: stdPackageName, version: stdLibVersion };
+      const stdNode = createPkgInfo(
+        stdPackageName,
+        options.stdlibVersion || version,
+        options,
+      );
+
       depGraphBuilder.addPkgNode(stdNode, stdPackageName);
       depGraphBuilder.connectDep(currentParent, stdPackageName);
       continue;
@@ -154,18 +173,14 @@ export function buildGraph(
     }
 
     const pkg = pkgMeta;
-    if (pkg.Module && pkg.Module.Version) {
+    const goModule = pkg.Module?.Replace || pkg.Module;
+    if (goModule?.Version) {
       // get hash (prefixed with #) or version (with v prefix removed)
-      version = toSnykVersion(
-        parseVersion(pkg.Module.Replace?.Version || pkg.Module.Version),
-      );
+      version = toSnykVersion(parseVersion(goModule.Version));
     }
 
     if (currentParent && packageImport) {
-      const newNode = {
-        name: packageImport,
-        version,
-      };
+      const newNode = createPkgInfo(packageImport, version, options, goModule);
 
       const currentChildren = childrenChain.get(currentParent) || [];
       const currentAncestors = ancestorsChain.get(currentParent) || [];
@@ -194,7 +209,7 @@ export function buildGraph(
       childrenChain.set(currentParent, [...currentChildren, packageImport]);
       ancestorsChain.set(packageImport, [...currentAncestors, currentParent]);
 
-      const transitives = packagesByName[packageImport].Imports! || [];
+      const transitives = packagesByName[packageImport].Imports || [];
       if (transitives.length > 0) {
         buildGraph(
           depGraphBuilder,
@@ -203,8 +218,7 @@ export function buildGraph(
           packageImport,
           childrenChain,
           ancestorsChain,
-          includeGoStandardLibraryDeps,
-          stdLibVersion,
+          options,
           localVisited,
         );
       }
@@ -227,4 +241,22 @@ function extractAllImports(goDeps: GoPackage[]): string[] {
 function isStandardLibraryPackage(pkgName: GoPackage): boolean {
   // Go Standard Library Packages are marked as Standard: true
   return pkgName?.Standard === true;
+}
+
+function createPkgInfo(
+  name: string,
+  version: string,
+  options: GraphOptions,
+  goModule?: GoModule,
+): PkgInfo {
+  let purl: string | undefined;
+  if (options.includePackageUrls) {
+    purl = goModule
+      ? // If we are dealing with a GoModule, the purl should be constructed from its values, because details can differ
+        // from `name` and `version`.
+        createGoPurl(goModule, name)
+      : // Otherwise create a simple purl that matches the `name` and `version` attributes.
+        createGoPurl({ Path: name, Version: version });
+  }
+  return { name, version, purl };
 }
