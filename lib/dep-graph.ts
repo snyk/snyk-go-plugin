@@ -102,7 +102,7 @@ export async function buildDepGraphFromImportsAndModules(
   const localPackageWithMainModule = localPackages.find(
     (localPackage) => !!(localPackage.Module && localPackage.Module.Main),
   );
-  if (localPackageWithMainModule && localPackageWithMainModule.Module?.Path) {
+  if (localPackageWithMainModule?.Module?.Path) {
     rootPkg = createPkgInfo(
       localPackageWithMainModule.Module.Path,
       projectVersion,
@@ -258,9 +258,5 @@ function createPkgInfo(
       : // Otherwise create a simple purl that matches the `name` and `version` attributes.
         createGoPurl({ Path: name, Version: version });
   }
-  return {
-    name,
-    version,
-    purl,
-  };
+  return { name, version, purl };
 }
