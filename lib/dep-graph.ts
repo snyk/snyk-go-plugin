@@ -2,7 +2,7 @@ import * as path from 'path';
 import { DepGraph, DepGraphBuilder, PkgInfo } from '@snyk/dep-graph';
 
 import { resolveStdlibVersion } from './helpers';
-import { GoPackage, Options } from './types';
+import { GoModule, GoPackage, Options } from './types';
 import { CustomError } from './errors/custom-error';
 import { parseVersion, toSnykVersion } from './version';
 import { runGo } from './sub-process';
@@ -57,17 +57,7 @@ export async function buildDepGraphFromImportsAndModules(
     ...options,
   };
 
-  let rootPkg: PkgInfo = {
-    name: projectName,
-    version: projectVersion,
-  };
-
-  if (options.includePackageUrls) {
-    rootPkg.purl = createGoPurl({
-      Path: projectName,
-      Version: projectVersion,
-    });
-  }
+  let rootPkg = createPkgInfo(projectName, projectVersion, options);
 
   let depGraphBuilder = new DepGraphBuilder({ name: 'gomodules' }, rootPkg);
 
@@ -112,17 +102,12 @@ export async function buildDepGraphFromImportsAndModules(
   const localPackageWithMainModule = localPackages.find(
     (localPackage) => !!(localPackage.Module && localPackage.Module.Main),
   );
-  if (localPackageWithMainModule && localPackageWithMainModule!.Module!.Path) {
-    rootPkg = {
-      name: localPackageWithMainModule!.Module!.Path,
-      version: projectVersion,
-    };
-    if (options.includePackageUrls) {
-      rootPkg.purl = createGoPurl({
-        Path: rootPkg.name,
-        Version: rootPkg.version!,
-      });
-    }
+  if (localPackageWithMainModule && localPackageWithMainModule.Module?.Path) {
+    rootPkg = createPkgInfo(
+      localPackageWithMainModule.Module.Path,
+      projectVersion,
+      options,
+    );
     depGraphBuilder = new DepGraphBuilder({ name: 'gomodules' }, rootPkg);
   }
   const topLevelDeps = extractAllImports(localPackages);
@@ -170,16 +155,12 @@ export function buildGraph(
       const stdPackageName = `std/${packageImport}`;
 
       // create synthetic node and connect, then continue loop
-      const stdNode: PkgInfo = {
-        name: stdPackageName,
-        version: options.stdlibVersion,
-      };
-      if (options.includePackageUrls) {
-        stdNode.purl = createGoPurl({
-          Path: stdPackageName,
-          Version: options.stdlibVersion!,
-        });
-      }
+      const stdNode = createPkgInfo(
+        stdPackageName,
+        options.stdlibVersion || version,
+        options,
+      );
+
       depGraphBuilder.addPkgNode(stdNode, stdPackageName);
       depGraphBuilder.connectDep(currentParent, stdPackageName);
       continue;
@@ -192,17 +173,14 @@ export function buildGraph(
     }
 
     const pkg = pkgMeta;
-    const module = pkg.Module?.Replace || pkg.Module;
-    if (module?.Version) {
+    const goModule = pkg.Module?.Replace || pkg.Module;
+    if (goModule?.Version) {
       // get hash (prefixed with #) or version (with v prefix removed)
-      version = toSnykVersion(parseVersion(module.Version));
+      version = toSnykVersion(parseVersion(goModule.Version));
     }
 
     if (currentParent && packageImport) {
-      const newNode: PkgInfo = {
-        name: packageImport,
-        version,
-      };
+      const newNode = createPkgInfo(packageImport, version, options, goModule);
 
       const currentChildren = childrenChain.get(currentParent) || [];
       const currentAncestors = ancestorsChain.get(currentParent) || [];
@@ -213,16 +191,6 @@ export function buildGraph(
       // @TODO boost: breaking cycles,  re-work once dep-graph lib can handle cycles
       if (packageImport === currentParent || isAncestorOrChild) {
         continue;
-      }
-
-      if (options.includePackageUrls && module) {
-        newNode.purl = createGoPurl(
-          {
-            Path: module.Path,
-            Version: module.Version,
-          },
-          packageImport,
-        );
       }
 
       if (localVisited.has(packageImport)) {
@@ -241,7 +209,7 @@ export function buildGraph(
       childrenChain.set(currentParent, [...currentChildren, packageImport]);
       ancestorsChain.set(packageImport, [...currentAncestors, currentParent]);
 
-      const transitives = packagesByName[packageImport].Imports! || [];
+      const transitives = packagesByName[packageImport].Imports || [];
       if (transitives.length > 0) {
         buildGraph(
           depGraphBuilder,
@@ -273,4 +241,26 @@ function extractAllImports(goDeps: GoPackage[]): string[] {
 function isStandardLibraryPackage(pkgName: GoPackage): boolean {
   // Go Standard Library Packages are marked as Standard: true
   return pkgName?.Standard === true;
+}
+
+function createPkgInfo(
+  name: string,
+  version: string,
+  options: GraphOptions,
+  goModule?: GoModule,
+): PkgInfo {
+  let purl: string | undefined;
+  if (options.includePackageUrls) {
+    purl = goModule
+      ? // If we are dealing with a GoModule, the purl should be constructed from its values, because details can differ
+        // from `name` and `version`.
+        createGoPurl(goModule, name)
+      : // Otherwise create a simple purl that matches the `name` and `version` attributes.
+        createGoPurl({ Path: name, Version: version });
+  }
+  return {
+    name,
+    version,
+    purl,
+  };
 }
