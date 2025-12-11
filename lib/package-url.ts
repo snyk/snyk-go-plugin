@@ -1,12 +1,6 @@
 import { PackageURL } from 'packageurl-js';
 
-import { Options } from './types';
-
 const PURL_TYPE_GOLANG = 'golang';
-
-export function shouldIncludePackageUrls(options: Options): boolean {
-  return !!options['print-graph'];
-}
 
 interface GoModule {
   Version: string;

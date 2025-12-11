@@ -66,4 +66,16 @@ test('dependency graph with package urls', async (t) => {
     );
     t.equal(JSON.stringify(depGraph), JSON.stringify(expectedDepGraph));
   });
+
+  t.test('produces a dependency graph without package urls', async (t) => {
+    const expectedDepGraph = JSON.parse(
+      load('gomod-small/expected-gomodules-depgraph.json'),
+    );
+    const depGraph = await buildDepGraphFromImportsAndModules(
+      `${__dirname}/fixtures/gomod-small`,
+      undefined,
+      { includePackageUrls: false },
+    );
+    t.equal(JSON.stringify(depGraph), JSON.stringify(expectedDepGraph));
+  });
 });
