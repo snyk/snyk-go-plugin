@@ -6,7 +6,7 @@ import { GoModule, GoPackage, Options } from './types';
 import { CustomError } from './errors/custom-error';
 import { parseVersion, toSnykVersion } from './version';
 import { runGo } from './sub-process';
-import { createGoPurl, shouldIncludePackageUrls } from './package-url';
+import { createGoPurl } from './package-url';
 
 export async function getDepGraph(
   root: string,
@@ -23,7 +23,7 @@ export async function getDepGraph(
     ? await resolveStdlibVersion(root, targetFile)
     : 'unknown';
 
-  const includePackageUrls = shouldIncludePackageUrls(options);
+  const includePackageUrls = configuration?.includePackageUrls ?? false;
 
   return buildDepGraphFromImportsAndModules(root, targetFile, {
     stdlibVersion,

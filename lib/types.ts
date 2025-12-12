@@ -24,8 +24,8 @@ export interface Options {
   args?: string[];
   configuration?: {
     includeGoStandardLibraryDeps?: boolean;
+    includePackageUrls?: boolean;
   };
-  'print-graph'?: boolean;
 }
 
 export interface DepGraphResult {
