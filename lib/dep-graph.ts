@@ -23,7 +23,7 @@ export async function getDepGraph(
     ? await resolveStdlibVersion(root, targetFile)
     : 'unknown';
 
-  const includePackageUrls = configuration?.includePackageUrls ?? false;
+  const includePackageUrls = configuration?.includePackageUrls ?? true;
 
   return buildDepGraphFromImportsAndModules(root, targetFile, {
     stdlibVersion,

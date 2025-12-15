@@ -52,7 +52,7 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
   test('go list parsing with module information', (t) => {
     t.test('produces dependency graph', async (t) => {
       const expectedDepGraph = JSON.parse(
-        load('gomod-small/expected-gomodules-depgraph.json'),
+        load('gomod-small/expected-gomodules-depgraph-no-purls.json'),
       );
       const depGraphAndNotice = await buildDepGraphFromImportsAndModules(
         `${__dirname}/fixtures/gomod-small`,
