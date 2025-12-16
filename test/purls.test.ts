@@ -57,7 +57,7 @@ test('dependency graph with package urls', async (t) => {
 
   t.test('produces a dependency graph with package urls', async (t) => {
     const expectedDepGraph = JSON.parse(
-      load('gomod-small/expected-gomodules-depgraph-with-purls.json'),
+      load('gomod-small/expected-gomodules-depgraph.json'),
     );
     const depGraph = await buildDepGraphFromImportsAndModules(
       `${__dirname}/fixtures/gomod-small`,
@@ -69,7 +69,7 @@ test('dependency graph with package urls', async (t) => {
 
   t.test('produces a dependency graph without package urls', async (t) => {
     const expectedDepGraph = JSON.parse(
-      load('gomod-small/expected-gomodules-depgraph.json'),
+      load('gomod-small/expected-gomodules-depgraph-no-purls.json'),
     );
     const depGraph = await buildDepGraphFromImportsAndModules(
       `${__dirname}/fixtures/gomod-small`,
