@@ -34,7 +34,7 @@
     "lookpath": "^1.2.2",
     "packageurl-js": "^2.0.1",
     "snyk-go-parser": "1.13.0",
-    "tmp": "0.2.2",
+    "tmp": "0.2.5",
     "tslib": "^1.10.0"
   },
   "devDependencies": {
