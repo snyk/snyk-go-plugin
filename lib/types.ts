@@ -25,6 +25,11 @@ export interface Options {
   configuration?: {
     includeGoStandardLibraryDeps?: boolean;
     includePackageUrls?: boolean;
+    /**
+     * Temporary config value to enable proper identification
+     * of replaced modules.
+     */
+    useReplaceName?: boolean;
   };
 }
 
