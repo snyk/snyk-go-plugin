@@ -36,7 +36,11 @@ export function createGoPurl(
   // If an import path was given and is not exactly matching the module's
   // path, we're dealing with a sub-package. This should go under the purl's
   // subpath.
-  if (importPath && importPath !== goModule.Path) {
+  if (
+    importPath &&
+    importPath.indexOf(goModule.Path) === 0 &&
+    importPath !== goModule.Path
+  ) {
     subpath = importPath.replace(`${goModule.Path}/`, '');
   }
 

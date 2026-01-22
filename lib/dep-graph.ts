@@ -173,7 +173,16 @@ export function buildGraph(
     }
 
     const pkg = pkgMeta;
-    const goModule = pkg.Module?.Replace || pkg.Module;
+    let goModule = pkg.Module;
+    if (pkg.Module?.Replace) {
+      goModule = pkg.Module.Replace;
+      // Keep the replace import path in sync with the original module's path,
+      // so that purl generation (off of `goModule`) does not conflict with the
+      // pkgInfo.name (off of `packageImport`).
+      // XXX: This is a misidentification of the actual package in use, which should
+      // rather follow the Module.Replace.Path.
+      goModule.Path = packageImport;
+    }
     if (goModule?.Version) {
       // get hash (prefixed with #) or version (with v prefix removed)
       version = toSnykVersion(parseVersion(goModule.Version));
