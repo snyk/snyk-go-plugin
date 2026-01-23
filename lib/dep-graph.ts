@@ -7,6 +7,7 @@ import { CustomError } from './errors/custom-error';
 import { parseVersion, toSnykVersion } from './version';
 import { runGo } from './sub-process';
 import { createGoPurl } from './package-url';
+import { debug } from './debug';
 
 export async function getDepGraph(
   root: string,
@@ -264,6 +265,12 @@ function createPkgInfo(
 
   // Honor a potential module override
   if (goModule.Replace) {
+    if (!packageImport.startsWith(goModule.Path)) {
+      debug('module replaced', {
+        imported: goModule.Path,
+        replacedBy: goModule.Replace.Path,
+      });
+    }
     snykName = packageImport.replace(goModule.Path, goModule.Replace.Path);
     snykVersion = toSnykVersion(parseVersion(goModule.Replace.Version));
   }
