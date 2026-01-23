@@ -143,7 +143,7 @@ export function buildGraph(
   for (let i = depPackagesLen - 1; i >= 0; i--) {
     const localVisited = visited || new Set<string>();
     const packageImport: string = depPackages[i];
-    let version = 'unknown';
+    const version = 'unknown';
 
     // ---------- Standard library handling ----------
     if (isStandardLibraryPackage(packagesByName[packageImport])) {
@@ -173,20 +173,7 @@ export function buildGraph(
     }
 
     const pkg = pkgMeta;
-    let goModule = pkg.Module;
-    if (pkg.Module?.Replace) {
-      goModule = pkg.Module.Replace;
-      // Keep the replace import path in sync with the original module's path,
-      // so that purl generation (off of `goModule`) does not conflict with the
-      // pkgInfo.name (off of `packageImport`).
-      // XXX: This is a misidentification of the actual package in use, which should
-      // rather follow the Module.Replace.Path.
-      goModule.Path = packageImport;
-    }
-    if (goModule?.Version) {
-      // get hash (prefixed with #) or version (with v prefix removed)
-      version = toSnykVersion(parseVersion(goModule.Version));
-    }
+    const goModule = pkg.Module;
 
     if (currentParent && packageImport) {
       const newNode = createPkgInfo(packageImport, version, options, goModule);
@@ -253,19 +240,39 @@ function isStandardLibraryPackage(pkgName: GoPackage): boolean {
 }
 
 function createPkgInfo(
-  name: string,
+  packageImport: string,
   version: string,
   options: GraphOptions,
   goModule?: GoModule,
 ): PkgInfo {
-  let purl: string | undefined;
-  if (options.includePackageUrls) {
-    purl = goModule
-      ? // If we are dealing with a GoModule, the purl should be constructed from its values, because details can differ
-        // from `name` and `version`.
-        createGoPurl(goModule, name)
-      : // Otherwise create a simple purl that matches the `name` and `version` attributes.
-        createGoPurl({ Path: name, Version: version });
+  let snykName = packageImport;
+  let snykVersion = version;
+
+  if (!goModule) {
+    return {
+      name: snykName,
+      version: snykVersion,
+      purl: options.includePackageUrls
+        ? createGoPurl({ Path: packageImport, Version: version })
+        : undefined,
+    };
   }
-  return { name, version, purl };
+
+  if (goModule.Version) {
+    snykVersion = toSnykVersion(parseVersion(goModule.Version));
+  }
+
+  // Honor a potential module override
+  if (goModule.Replace) {
+    snykName = packageImport.replace(goModule.Path, goModule.Replace.Path);
+    snykVersion = toSnykVersion(parseVersion(goModule.Replace.Version));
+  }
+
+  return {
+    name: snykName,
+    version: snykVersion,
+    purl: options.includePackageUrls
+      ? createGoPurl(goModule.Replace || goModule, snykName)
+      : undefined,
+  };
 }

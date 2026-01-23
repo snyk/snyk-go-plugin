@@ -1,8 +1,6 @@
 {
   "schemaVersion": "1.3.0",
-  "pkgManager": {
-    "name": "gomodules"
-  },
+  "pkgManager": { "name": "gomodules" },
   "pkgs": [
     {
       "id": "github.com/snyk-test/test-repo@0.0.0",
@@ -17,7 +15,7 @@
       "info": {
         "name": "github.com/stretchr/testify/assert",
         "version": "1.6.1",
-        "purl": "pkg:golang/github.com/stretchr/testify/assert@v1.6.1"
+        "purl": "pkg:golang/github.com/stretchr/testify@v1.6.1#assert"
       }
     },
     {
@@ -45,11 +43,11 @@
       }
     },
     {
-      "id": "github.com/golang/mock/gomock@1.6.0",
+      "id": "github.com/n1lesh/mock/gomock@1.6.0",
       "info": {
-        "name": "github.com/golang/mock/gomock",
+        "name": "github.com/n1lesh/mock/gomock",
         "version": "1.6.0",
-        "purl": "pkg:golang/github.com/golang/mock/gomock@v1.6.0"
+        "purl": "pkg:golang/github.com/n1lesh/mock@v1.6.0#gomock"
       }
     }
   ],
@@ -60,27 +58,17 @@
         "nodeId": "root-node",
         "pkgId": "github.com/snyk-test/test-repo@0.0.0",
         "deps": [
-          {
-            "nodeId": "github.com/stretchr/testify/assert"
-          },
-          {
-            "nodeId": "github.com/golang/mock/gomock"
-          }
+          { "nodeId": "github.com/stretchr/testify/assert" },
+          { "nodeId": "github.com/golang/mock/gomock" }
         ]
       },
       {
         "nodeId": "github.com/stretchr/testify/assert",
         "pkgId": "github.com/stretchr/testify/assert@1.6.1",
         "deps": [
-          {
-            "nodeId": "gopkg.in/yaml.v3"
-          },
-          {
-            "nodeId": "github.com/pmezard/go-difflib/difflib"
-          },
-          {
-            "nodeId": "github.com/davecgh/go-spew/spew"
-          }
+          { "nodeId": "gopkg.in/yaml.v3" },
+          { "nodeId": "github.com/pmezard/go-difflib/difflib" },
+          { "nodeId": "github.com/davecgh/go-spew/spew" }
         ]
       },
       {
@@ -100,7 +88,7 @@
       },
       {
         "nodeId": "github.com/golang/mock/gomock",
-        "pkgId": "github.com/golang/mock/gomock@1.6.0",
+        "pkgId": "github.com/n1lesh/mock/gomock@1.6.0",
         "deps": []
       }
     ]
