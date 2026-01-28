@@ -64,7 +64,11 @@ test('dependency graph with package urls', async (t) => {
       const depGraph = await buildDepGraphFromImportsAndModules(
         `${__dirname}/fixtures/gomod-replace`,
         undefined,
-        { includePackageUrls: true },
+        {
+          includePackageUrls: true,
+          // Temporary: this is required for purl generation.
+          useReplaceName: true,
+        },
       );
       try {
         const actualDepGraph = createFromJSON(depGraph.toJSON());

@@ -40,9 +40,9 @@
       }
     },
     {
-      "id": "github.com/n1lesh/mock/gomock@1.6.0",
+      "id": "github.com/golang/mock/gomock@1.6.0",
       "info": {
-        "name": "github.com/n1lesh/mock/gomock",
+        "name": "github.com/golang/mock/gomock",
         "version": "1.6.0"
       }
     }
@@ -94,7 +94,7 @@
       },
       {
         "nodeId": "github.com/golang/mock/gomock",
-        "pkgId": "github.com/n1lesh/mock/gomock@1.6.0",
+        "pkgId": "github.com/golang/mock/gomock@1.6.0",
         "deps": []
       }
     ]

@@ -7,7 +7,6 @@ import { CustomError } from './errors/custom-error';
 import { parseVersion, toSnykVersion } from './version';
 import { runGo } from './sub-process';
 import { createGoPurl } from './package-url';
-import { debug } from './debug';
 
 export async function getDepGraph(
   root: string,
@@ -24,6 +23,8 @@ export async function getDepGraph(
     ? await resolveStdlibVersion(root, targetFile)
     : 'unknown';
 
+  const useReplaceName = configuration?.useReplaceName ?? false;
+
   const includePackageUrls = configuration?.includePackageUrls ?? true;
 
   return buildDepGraphFromImportsAndModules(root, targetFile, {
@@ -31,6 +32,7 @@ export async function getDepGraph(
     additionalArgs,
     includeGoStandardLibraryDeps,
     includePackageUrls,
+    useReplaceName,
   });
 }
 
@@ -39,6 +41,13 @@ interface GraphOptions {
   additionalArgs?: string[];
   includeGoStandardLibraryDeps?: boolean;
   includePackageUrls?: boolean;
+  /**
+   * Temporary: This option fixes the wrongful identification of a module
+   * when it is actually being replaced with a differently named module.
+   * This option is being used for a gradual rollout of the fix, and
+   * removed once the rollout is complete.
+   **/
+  useReplaceName?: boolean;
 }
 
 export async function buildDepGraphFromImportsAndModules(
@@ -55,6 +64,7 @@ export async function buildDepGraphFromImportsAndModules(
     additionalArgs: [],
     includeGoStandardLibraryDeps: false,
     includePackageUrls: false,
+    useReplaceName: false,
     ...options,
   };
 
@@ -248,12 +258,13 @@ function createPkgInfo(
 ): PkgInfo {
   let snykName = packageImport;
   let snykVersion = version;
+  const includePurl = options.includePackageUrls && options.useReplaceName;
 
   if (!goModule) {
     return {
       name: snykName,
       version: snykVersion,
-      purl: options.includePackageUrls
+      purl: includePurl
         ? createGoPurl({ Path: packageImport, Version: version })
         : undefined,
     };
@@ -265,20 +276,16 @@ function createPkgInfo(
 
   // Honor a potential module override
   if (goModule.Replace) {
-    if (!packageImport.startsWith(goModule.Path)) {
-      debug('module replaced', {
-        imported: goModule.Path,
-        replacedBy: goModule.Replace.Path,
-      });
+    if (options.useReplaceName) {
+      snykName = packageImport.replace(goModule.Path, goModule.Replace.Path);
     }
-    snykName = packageImport.replace(goModule.Path, goModule.Replace.Path);
     snykVersion = toSnykVersion(parseVersion(goModule.Replace.Version));
   }
 
   return {
     name: snykName,
     version: snykVersion,
-    purl: options.includePackageUrls
+    purl: includePurl
       ? createGoPurl(goModule.Replace || goModule, snykName)
       : undefined,
   };
