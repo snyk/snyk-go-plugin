@@ -23,6 +23,8 @@ export async function getDepGraph(
     ? await resolveStdlibVersion(root, targetFile)
     : 'unknown';
 
+  const useReplaceName = configuration?.useReplaceName ?? false;
+
   const includePackageUrls = configuration?.includePackageUrls ?? true;
 
   return buildDepGraphFromImportsAndModules(root, targetFile, {
@@ -30,6 +32,7 @@ export async function getDepGraph(
     additionalArgs,
     includeGoStandardLibraryDeps,
     includePackageUrls,
+    useReplaceName,
   });
 }
 
@@ -38,6 +41,13 @@ interface GraphOptions {
   additionalArgs?: string[];
   includeGoStandardLibraryDeps?: boolean;
   includePackageUrls?: boolean;
+  /**
+   * Temporary: This option fixes the wrongful identification of a module
+   * when it is actually being replaced with a differently named module.
+   * This option is being used for a gradual rollout of the fix, and
+   * removed once the rollout is complete.
+   **/
+  useReplaceName?: boolean;
 }
 
 export async function buildDepGraphFromImportsAndModules(
@@ -54,6 +64,7 @@ export async function buildDepGraphFromImportsAndModules(
     additionalArgs: [],
     includeGoStandardLibraryDeps: false,
     includePackageUrls: false,
+    useReplaceName: false,
     ...options,
   };
 
@@ -143,7 +154,7 @@ export function buildGraph(
   for (let i = depPackagesLen - 1; i >= 0; i--) {
     const localVisited = visited || new Set<string>();
     const packageImport: string = depPackages[i];
-    let version = 'unknown';
+    const version = 'unknown';
 
     // ---------- Standard library handling ----------
     if (isStandardLibraryPackage(packagesByName[packageImport])) {
@@ -167,20 +178,18 @@ export function buildGraph(
     }
 
     // ---------- External package handling ----------
-    const pkgMeta = packagesByName[packageImport];
-    if (!pkgMeta || !pkgMeta.DepOnly) {
+    const pkg = packagesByName[packageImport];
+    if (!pkg || !pkg.DepOnly) {
       continue; // skip local or root-module packages
     }
 
-    const pkg = pkgMeta;
-    const goModule = pkg.Module?.Replace || pkg.Module;
-    if (goModule?.Version) {
-      // get hash (prefixed with #) or version (with v prefix removed)
-      version = toSnykVersion(parseVersion(goModule.Version));
-    }
-
     if (currentParent && packageImport) {
-      const newNode = createPkgInfo(packageImport, version, options, goModule);
+      const newNode = createPkgInfo(
+        packageImport,
+        version,
+        options,
+        pkg.Module,
+      );
 
       const currentChildren = childrenChain.get(currentParent) || [];
       const currentAncestors = ancestorsChain.get(currentParent) || [];
@@ -244,19 +253,42 @@ function isStandardLibraryPackage(pkgName: GoPackage): boolean {
 }
 
 function createPkgInfo(
-  name: string,
+  packageImport: string,
   version: string,
   options: GraphOptions,
   goModule?: GoModule,
 ): PkgInfo {
-  let purl: string | undefined;
-  if (options.includePackageUrls) {
-    purl = goModule
-      ? // If we are dealing with a GoModule, the purl should be constructed from its values, because details can differ
-        // from `name` and `version`.
-        createGoPurl(goModule, name)
-      : // Otherwise create a simple purl that matches the `name` and `version` attributes.
-        createGoPurl({ Path: name, Version: version });
+  let snykName = packageImport;
+  let snykVersion = version;
+  const includePurl = options.includePackageUrls && options.useReplaceName;
+
+  if (!goModule) {
+    return {
+      name: snykName,
+      version: snykVersion,
+      purl: includePurl
+        ? createGoPurl({ Path: packageImport, Version: version })
+        : undefined,
+    };
   }
-  return { name, version, purl };
+
+  if (goModule.Version) {
+    snykVersion = toSnykVersion(parseVersion(goModule.Version));
+  }
+
+  // Honor a potential module override
+  if (goModule.Replace) {
+    if (options.useReplaceName) {
+      snykName = packageImport.replace(goModule.Path, goModule.Replace.Path);
+    }
+    snykVersion = toSnykVersion(parseVersion(goModule.Replace.Version));
+  }
+
+  return {
+    name: snykName,
+    version: snykVersion,
+    purl: includePurl
+      ? createGoPurl(goModule.Replace || goModule, snykName)
+      : undefined,
+  };
 }

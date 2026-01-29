@@ -1,49 +1,53 @@
 {
   "schemaVersion": "1.3.0",
-  "pkgManager": {
-    "name": "gomodules"
-  },
+  "pkgManager": { "name": "gomodules" },
   "pkgs": [
     {
       "id": "github.com/snyk-test/test-repo@0.0.0",
       "info": {
         "name": "github.com/snyk-test/test-repo",
-        "version": "0.0.0"
+        "version": "0.0.0",
+        "purl": "pkg:golang/github.com/snyk-test/test-repo@0.0.0"
       }
     },
     {
       "id": "github.com/stretchr/testify/assert@1.6.1",
       "info": {
         "name": "github.com/stretchr/testify/assert",
-        "version": "1.6.1"
+        "version": "1.6.1",
+        "purl": "pkg:golang/github.com/stretchr/testify@v1.6.1#assert"
       }
     },
     {
       "id": "gopkg.in/yaml.v3@#9f266ea9e77c",
       "info": {
         "name": "gopkg.in/yaml.v3",
-        "version": "#9f266ea9e77c"
+        "version": "#9f266ea9e77c",
+        "purl": "pkg:golang/gopkg.in/yaml.v3@v3.0.0-20200313102051-9f266ea9e77c"
       }
     },
     {
       "id": "github.com/pmezard/go-difflib/difflib@1.0.0",
       "info": {
         "name": "github.com/pmezard/go-difflib/difflib",
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "purl": "pkg:golang/github.com/pmezard/go-difflib@v1.0.0#difflib"
       }
     },
     {
       "id": "github.com/davecgh/go-spew/spew@1.1.0",
       "info": {
         "name": "github.com/davecgh/go-spew/spew",
-        "version": "1.1.0"
+        "version": "1.1.0",
+        "purl": "pkg:golang/github.com/davecgh/go-spew@v1.1.0#spew"
       }
     },
     {
-      "id": "github.com/golang/mock/gomock@1.6.0",
+      "id": "github.com/n1lesh/mock/gomock@1.6.0",
       "info": {
-        "name": "github.com/golang/mock/gomock",
-        "version": "1.6.0"
+        "name": "github.com/n1lesh/mock/gomock",
+        "version": "1.6.0",
+        "purl": "pkg:golang/github.com/n1lesh/mock@v1.6.0#gomock"
       }
     }
   ],
@@ -54,27 +58,17 @@
         "nodeId": "root-node",
         "pkgId": "github.com/snyk-test/test-repo@0.0.0",
         "deps": [
-          {
-            "nodeId": "github.com/stretchr/testify/assert"
-          },
-          {
-            "nodeId": "github.com/golang/mock/gomock"
-          }
+          { "nodeId": "github.com/stretchr/testify/assert" },
+          { "nodeId": "github.com/golang/mock/gomock" }
         ]
       },
       {
         "nodeId": "github.com/stretchr/testify/assert",
         "pkgId": "github.com/stretchr/testify/assert@1.6.1",
         "deps": [
-          {
-            "nodeId": "gopkg.in/yaml.v3"
-          },
-          {
-            "nodeId": "github.com/pmezard/go-difflib/difflib"
-          },
-          {
-            "nodeId": "github.com/davecgh/go-spew/spew"
-          }
+          { "nodeId": "gopkg.in/yaml.v3" },
+          { "nodeId": "github.com/pmezard/go-difflib/difflib" },
+          { "nodeId": "github.com/davecgh/go-spew/spew" }
         ]
       },
       {
@@ -94,7 +88,7 @@
       },
       {
         "nodeId": "github.com/golang/mock/gomock",
-        "pkgId": "github.com/golang/mock/gomock@1.6.0",
+        "pkgId": "github.com/n1lesh/mock/gomock@1.6.0",
         "deps": []
       }
     ]

@@ -55,6 +55,34 @@ test('dependency graph with package urls', async (t) => {
     }
   });
 
+  t.test(
+    'produces a valid dependency graph with replace directives',
+    async (t) => {
+      const expectedDepGraph = JSON.parse(
+        load('gomod-replace/expected-depgraph-with-purls.json'),
+      );
+      const depGraph = await buildDepGraphFromImportsAndModules(
+        `${__dirname}/fixtures/gomod-replace`,
+        undefined,
+        {
+          includePackageUrls: true,
+          // Temporary: this is required for purl generation.
+          useReplaceName: true,
+        },
+      );
+      try {
+        const actualDepGraph = createFromJSON(depGraph.toJSON());
+        t.equal(
+          JSON.stringify(actualDepGraph),
+          JSON.stringify(expectedDepGraph),
+        );
+        t.pass('produces valid dep-graph data');
+      } catch (e) {
+        t.fail('does not produce a valid dep-graph', (e as any).message);
+      }
+    },
+  );
+
   t.test('produces a dependency graph with package urls', async (t) => {
     const expectedDepGraph = JSON.parse(
       load('gomod-small/expected-gomodules-depgraph.json'),
