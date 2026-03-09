@@ -65,19 +65,25 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
     t.end();
   });
 
-  test('go list parsing with replace directive', (t) => {
-    t.test('produces dependency graph', async (t) => {
-      const expectedDepGraph = JSON.parse(
-        load('gomod-replace/expected-depgraph.json'),
-      );
-      const depGraphAndNotice = await buildDepGraphFromImportsAndModules(
-        `${__dirname}/fixtures/gomod-replace`,
-      );
-      t.equal(
-        JSON.stringify(depGraphAndNotice),
-        JSON.stringify(expectedDepGraph),
-      );
-    });
+  test('go list parsing with edge cases', (t) => {
+    t.test(
+      'produces dependency graph',
+      {
+        skip: goVersion[0] <= 1 && goVersion[1] < 21,
+      },
+      async (t) => {
+        const expectedDepGraph = JSON.parse(
+          load('gomod-kitchen-sink/expected-depgraph.json'),
+        );
+        const depGraphAndNotice = await buildDepGraphFromImportsAndModules(
+          `${__dirname}/fixtures/gomod-kitchen-sink`,
+        );
+        t.equal(
+          JSON.stringify(depGraphAndNotice),
+          JSON.stringify(expectedDepGraph),
+        );
+      },
+    );
     t.end();
   });
 } else {
