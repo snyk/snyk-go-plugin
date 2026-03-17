@@ -258,37 +258,54 @@ function createPkgInfo(
   options: GraphOptions,
   goModule?: GoModule,
 ): PkgInfo {
-  let snykName = packageImport;
-  let snykVersion = version;
+  const useReplaceInfo = goModule?.Replace?.Path && goModule?.Replace?.Version;
   const includePurl = options.includePackageUrls && options.useReplaceName;
 
-  if (!goModule) {
-    return {
-      name: snykName,
-      version: snykVersion,
-      purl: includePurl
-        ? createGoPurl({ Path: packageImport, Version: version })
-        : undefined,
-    };
-  }
-
-  if (goModule.Version) {
-    snykVersion = toSnykVersion(parseVersion(goModule.Version));
-  }
-
-  // Honor a potential module override
-  if (goModule.Replace) {
-    if (options.useReplaceName) {
-      snykName = packageImport.replace(goModule.Path, goModule.Replace.Path);
-    }
-    snykVersion = toSnykVersion(parseVersion(goModule.Replace.Version));
-  }
-
-  return {
-    name: snykName,
-    version: snykVersion,
-    purl: includePurl
-      ? createGoPurl(goModule.Replace || goModule, snykName)
-      : undefined,
+  /**
+   * By default, the name is the full import path and the given version.
+   */
+  const pkg: PkgInfo = {
+    name: packageImport,
+    version,
   };
+
+  /**
+   * If the module has any .Version information, parse and use it.
+   */
+  if (goModule?.Version) {
+    pkg.version = toSnykVersion(parseVersion(goModule.Version));
+  }
+
+  /**
+   * If the module has a potential override with both .Path and .Version information,
+   * use that information instead.
+   */
+  if (useReplaceInfo) {
+    // Temporary: this is behind an option for controlled rollout and will
+    // get cleaned up later.
+    if (options.useReplaceName) {
+      pkg.name = packageImport.replace(goModule.Path, goModule.Replace.Path);
+    }
+    pkg.version = toSnykVersion(parseVersion(goModule.Replace.Version));
+  }
+
+  /**
+   * If no purls are being included, stop here.
+   */
+  if (!includePurl) {
+    return pkg;
+  }
+
+  if (useReplaceInfo) {
+    // Create purl from replaced module only if both .Name and .Version are present.
+    pkg.purl = createGoPurl(goModule.Replace, pkg);
+  } else if (goModule) {
+    // Otherwise use the original module.
+    pkg.purl = createGoPurl(goModule, pkg);
+  } else {
+    // Or if there is none, create a purl from the import path and given version.
+    pkg.purl = createGoPurl({ Path: packageImport, Version: version });
+  }
+
+  return pkg;
 }

@@ -1,3 +1,4 @@
+import { PkgInfo } from '@snyk/dep-graph';
 import { PackageURL } from 'packageurl-js';
 
 const PURL_TYPE_GOLANG = 'golang';
@@ -15,11 +16,11 @@ interface GoModule {
  */
 export function createGoPurl(
   goModule: GoModule,
-  importPath?: string,
+  snykPkg?: PkgInfo,
 ): string | undefined {
   let namespace: string | undefined;
   let name: string | undefined;
-  const version = goModule.Version;
+  const version = goModule.Version || snykPkg?.version;
   let subpath: string | undefined;
 
   // Split the module path into a name and namespace.
@@ -36,11 +37,10 @@ export function createGoPurl(
   // If an import path was given, and it contains more parts than the module's path,
   // we're dealing with a sub-package. This should go under the purl's subpath.
   if (
-    importPath &&
-    importPath.startsWith(goModule.Path) &&
-    importPath.length > goModule.Path.length
+    snykPkg?.name.startsWith(goModule.Path) &&
+    snykPkg.name.length > goModule.Path.length
   ) {
-    subpath = importPath.replace(`${goModule.Path}/`, '');
+    subpath = snykPkg.name.replace(`${goModule.Path}/`, '');
   }
 
   return new PackageURL(
