@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { buildDepGraphFromImportsAndModules } from '../lib';
+import { resolveStdlibVersion } from '../lib/helpers';
 import { goVersion } from './go-version';
 import { test } from 'tap';
 
@@ -82,6 +83,60 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
           JSON.stringify(depGraphAndNotice),
           JSON.stringify(expectedDepGraph),
         );
+      },
+    );
+    t.end();
+  });
+
+  // Two cmd mains, each with default.pgo: go list emits PGO ImportPath variants
+  // (e.g. github.com/google/uuid [github.com/snyk-test/pgo-test/cmd/svc-a]).
+  test('go list parsing with PGO fixture', (t) => {
+    t.test(
+      'produces dependency graph with normalised package IDs',
+      {
+        skip: goVersion[0] <= 1 && goVersion[1] < 21,
+      },
+      async (t) => {
+        const expectedDepGraph = JSON.parse(
+          load('gomod-pgo/expected-depgraph.json'),
+        );
+        const depGraph = await buildDepGraphFromImportsAndModules(
+          `${__dirname}/fixtures/gomod-pgo`,
+        );
+        t.equal(JSON.stringify(depGraph), JSON.stringify(expectedDepGraph));
+      },
+    );
+
+    t.test(
+      'with includeGoStandardLibraryDeps: std packages (e.g. fmt) use clean names',
+      {
+        skip: goVersion[0] <= 1 && goVersion[1] < 21,
+      },
+      async (t) => {
+        const root = `${__dirname}/fixtures/gomod-pgo`;
+        const stdlibVersion = await resolveStdlibVersion(root, 'go.mod');
+        const depGraph = await buildDepGraphFromImportsAndModules(
+          root,
+          'go.mod',
+          {
+            includeGoStandardLibraryDeps: true,
+            stdlibVersion,
+          },
+        );
+        const names = depGraph.getPkgs().map((p) => p.name);
+        t.ok(
+          names.every((n) => !n.includes(' [')),
+          'no package name contains a PGO/test variant suffix',
+        );
+        t.ok(
+          names.includes('std/fmt'),
+          'stdlib fmt is present when flag is on',
+        );
+        t.ok(
+          names.includes('github.com/google/uuid'),
+          'module dependency uuid is still present',
+        );
+        t.end();
       },
     );
     t.end();
