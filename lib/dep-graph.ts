@@ -106,7 +106,7 @@ export async function buildDepGraphFromImportsAndModules(
   const goDeps: GoPackage[] = JSON.parse(goDepsString);
   const packagesByName: { [name: string]: GoPackage } = {};
   for (const gp of goDeps) {
-    packagesByName[gp.ImportPath] = gp; // ImportPath is the fully qualified name
+    packagesByName[normalizeImportPath(gp.ImportPath)] = gp;
   }
 
   const localPackages = goDeps.filter((gp) => !gp.DepOnly);
@@ -218,7 +218,8 @@ export function buildGraph(
       childrenChain.set(currentParent, [...currentChildren, packageImport]);
       ancestorsChain.set(packageImport, [...currentAncestors, currentParent]);
 
-      const transitives = packagesByName[packageImport].Imports || [];
+      const rawImports = packagesByName[packageImport].Imports || [];
+      const transitives = [...new Set(rawImports.map(normalizeImportPath))];
       if (transitives.length > 0) {
         buildGraph(
           depGraphBuilder,
@@ -240,7 +241,7 @@ function extractAllImports(goDeps: GoPackage[]): string[] {
   for (const pkg of goDeps) {
     if (pkg.Imports) {
       for (const imp of pkg.Imports) {
-        goDepsImports.add(imp);
+        goDepsImports.add(normalizeImportPath(imp));
       }
     }
   }
@@ -250,6 +251,12 @@ function extractAllImports(goDeps: GoPackage[]): string[] {
 function isStandardLibraryPackage(pkgName: GoPackage): boolean {
   // Go Standard Library Packages are marked as Standard: true
   return pkgName?.Standard === true;
+}
+
+// Normalize the ImportPath by stripping Go's variant annotations
+// https://go.dev/doc/pgo
+function normalizeImportPath(importPath: string): string {
+  return importPath.split(' ')[0];
 }
 
 function createPkgInfo(

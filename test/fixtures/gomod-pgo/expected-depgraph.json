@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.3.0",
+  "pkgManager": {
+    "name": "gomodules"
+  },
+  "pkgs": [
+    {
+      "id": "github.com/snyk-test/pgo-test@0.0.0",
+      "info": {
+        "name": "github.com/snyk-test/pgo-test",
+        "version": "0.0.0"
+      }
+    },
+    {
+      "id": "github.com/google/uuid@1.6.0",
+      "info": {
+        "name": "github.com/google/uuid",
+        "version": "1.6.0"
+      }
+    }
+  ],
+  "graph": {
+    "rootNodeId": "root-node",
+    "nodes": [
+      {
+        "nodeId": "root-node",
+        "pkgId": "github.com/snyk-test/pgo-test@0.0.0",
+        "deps": [
+          {
+            "nodeId": "github.com/google/uuid"
+          }
+        ]
+      },
+      {
+        "nodeId": "github.com/google/uuid",
+        "pkgId": "github.com/google/uuid@1.6.0",
+        "deps": []
+      }
+    ]
+  }
+}
