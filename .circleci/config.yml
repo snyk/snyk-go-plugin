@@ -149,11 +149,12 @@ jobs:
       - checkout
       - install_deps
       - run:
-          name: Publish to GitHub
-          command: npx semantic-release
+          name: Release
+          command: |
+            export NPM_ID_TOKEN=$(circleci run oidc get --claims '{"aud": "npm:registry.npmjs.org"}')
+            npx semantic-release@25.0.5
 
 workflows:
-  version: 2
   test_and_release:
     jobs:
       - prodsec/secrets-scan:
@@ -197,8 +198,10 @@ workflows:
       # Release
       - release:
           name: Release
-          context: nodejs-app-release
-          node_version: "20.19"
+          context:
+            - nodejs-install
+            - github-release
+          node_version: "22.14"
           requires:
             - test-unix
             - test-windows
