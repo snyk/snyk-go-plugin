@@ -1,14 +1,24 @@
 {
   "name": "snyk-go-plugin",
   "description": "Snyk CLI Golang plugin",
-  "homepage": "https://github.com/snyk/snyk-go-plugin",
+  "homepage": "https://github.com/snyk/snyk-go-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/snyk/snyk-go-plugin/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/snyk/snyk-go-plugin"
+    "url": "https://github.com/snyk/snyk-go-plugin.git"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=20"
   },
+  "files": [
+    "dist",
+    "gosrc"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
