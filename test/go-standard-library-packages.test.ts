@@ -59,3 +59,32 @@ test('std-lib inclusion flag works for fixture: gomod-simple', async (t) => {
     'fmt not present when flag off',
   );
 });
+
+// Standard library packages are toolchain-provided, not proxy-distributed and
+// with no go.sum/Module.Sum hash, so they must never carry component-metadata
+// labels — even with includeComponentMetadata enabled. Guards against a future
+// change accidentally attaching a bogus proxy URL / hash to std nodes.
+test('std-lib packages carry no component-metadata labels', async (t) => {
+  const { dependencyGraph } = await inspect(
+    path.join(__dirname, 'fixtures', 'gomod-simple'),
+    targetFile,
+    {
+      configuration: { includeGoStandardLibraryDeps: true },
+      includeComponentMetadata: true,
+    } as any,
+  );
+
+  const stdNodes = dependencyGraph!
+    .toJSON()
+    .graph.nodes.filter((n) => n.pkgId.startsWith('std/'));
+
+  t.ok(stdNodes.length > 0, 'graph contains standard library nodes to check');
+  for (const node of stdNodes) {
+    const labels = node.info?.labels || {};
+    t.notOk(labels['hash:sha-256'], `${node.pkgId} has no hash:sha-256 label`);
+    t.notOk(
+      labels['distribution:url'],
+      `${node.pkgId} has no distribution:url label`,
+    );
+  }
+});

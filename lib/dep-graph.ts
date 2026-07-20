@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { DepGraph, DepGraphBuilder, PkgInfo } from '@snyk/dep-graph';
 
@@ -7,13 +8,22 @@ import { CustomError } from './errors/custom-error';
 import { parseVersion, toSnykVersion } from './version';
 import { runGo } from './sub-process';
 import { createGoPurl } from './package-url';
+import {
+  getComponentMetadataLabels,
+  parseGoSum,
+  GoSumHashes,
+} from './component-metadata';
 
 export async function getDepGraph(
   root: string,
   targetFile: string,
   options: Options = {},
 ): Promise<DepGraph> {
-  const { args: additionalArgs = [], configuration } = options;
+  const {
+    args: additionalArgs = [],
+    configuration,
+    includeComponentMetadata = false,
+  } = options;
 
   const includeGoStandardLibraryDeps =
     configuration?.includeGoStandardLibraryDeps ?? false;
@@ -33,6 +43,7 @@ export async function getDepGraph(
     includeGoStandardLibraryDeps,
     includePackageUrls,
     useReplaceName,
+    includeComponentMetadata,
   });
 }
 
@@ -48,6 +59,24 @@ interface GraphOptions {
    * removed once the rollout is complete.
    **/
   useReplaceName?: boolean;
+  /**
+   * Attach component-metadata labels (hash:sha-256, distribution:url) to
+   * dependency nodes, sourced from go.sum.
+   */
+  includeComponentMetadata?: boolean;
+  /**
+   * Internal: go.sum hashes parsed once and threaded through the recursion so
+   * node builders can look up module hashes. Populated when
+   * includeComponentMetadata is set.
+   */
+  goSumHashes?: GoSumHashes;
+  /**
+   * Internal: effective GOPROXY from `go env GOPROXY`, resolved once and
+   * threaded through so distribution URLs honour the go env file / env var
+   * precedence rather than only the process environment. Populated when
+   * includeComponentMetadata is set.
+   */
+  goProxy?: string;
 }
 
 export async function buildDepGraphFromImportsAndModules(
@@ -65,8 +94,14 @@ export async function buildDepGraphFromImportsAndModules(
     includeGoStandardLibraryDeps: false,
     includePackageUrls: false,
     useReplaceName: false,
+    includeComponentMetadata: false,
     ...options,
   };
+
+  if (options.includeComponentMetadata) {
+    options.goSumHashes = readGoSum(root, targetFile);
+    options.goProxy = await readGoProxy(root, targetFile);
+  }
 
   let rootPkg = createPkgInfo(projectName, projectVersion, options);
 
@@ -191,6 +226,8 @@ export function buildGraph(
         pkg.Module,
       );
 
+      const componentLabels = getComponentLabelsForModule(pkg.Module, options);
+
       const currentChildren = childrenChain.get(currentParent) || [];
       const currentAncestors = ancestorsChain.get(currentParent) || [];
       const isAncestorOrChild =
@@ -205,13 +242,19 @@ export function buildGraph(
       if (localVisited.has(packageImport)) {
         const prunedId = `${packageImport}:pruned`;
         depGraphBuilder.addPkgNode(newNode, prunedId, {
-          labels: { pruned: 'true' },
+          labels: { pruned: 'true', ...componentLabels },
         });
         depGraphBuilder.connectDep(currentParent, prunedId);
         continue;
       }
 
-      depGraphBuilder.addPkgNode(newNode, packageImport);
+      depGraphBuilder.addPkgNode(
+        newNode,
+        packageImport,
+        Object.keys(componentLabels).length > 0
+          ? { labels: componentLabels }
+          : undefined,
+      );
       depGraphBuilder.connectDep(currentParent, packageImport);
       localVisited.add(packageImport);
 
@@ -234,6 +277,64 @@ export function buildGraph(
       }
     }
   }
+}
+
+// Read and parse the go.sum sitting alongside the target go.mod. A missing or
+// unreadable go.sum is not fatal: component metadata is best-effort, so we
+// return an empty map and carry on.
+function readGoSum(root: string, targetFile: string): GoSumHashes {
+  const goSumPath = path.resolve(root, path.dirname(targetFile), 'go.sum');
+  try {
+    return parseGoSum(fs.readFileSync(goSumPath, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+// Resolve the effective GOPROXY via `go env GOPROXY`, which applies go's own
+// precedence (env var > go env file > built-in default) — unlike reading
+// process.env.GOPROXY, which misses values set with `go env -w`. Returns
+// undefined if the lookup fails so URL derivation can fall back to the default.
+async function readGoProxy(
+  root: string,
+  targetFile: string,
+): Promise<string | undefined> {
+  try {
+    const cwd = path.resolve(root, path.dirname(targetFile));
+    const out = await runGo(['env', 'GOPROXY'], { cwd });
+    return out.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// Resolve the component-metadata labels for the module a package belongs to.
+// Returns {} unless the feature is enabled and we have a module. Uses the
+// replacement module when present, since that is what actually gets downloaded
+// and recorded in go.sum. The module hash is preferred from `go list`'s
+// Module.Sum (go >= 1.23), falling back to the go.sum file for older toolchains
+// that do not emit it. Both key on the raw (un-normalised) module version, so
+// we deliberately avoid toSnykVersion here.
+function getComponentLabelsForModule(
+  goModule: GoModule | undefined,
+  options: GraphOptions,
+): Record<string, string> {
+  if (!options.includeComponentMetadata || !goModule) {
+    return {};
+  }
+
+  const replace = goModule.Replace;
+  const useReplaceInfo = replace?.Path && replace?.Version;
+  const modulePath = useReplaceInfo ? replace.Path : goModule.Path;
+  const version = useReplaceInfo ? replace.Version : goModule.Version;
+  if (!modulePath || !version) {
+    return {};
+  }
+
+  const h1 =
+    (useReplaceInfo ? replace.Sum : goModule.Sum) ||
+    options.goSumHashes?.[`${modulePath}@${version}`];
+  return getComponentMetadataLabels(modulePath, version, h1, options.goProxy);
 }
 
 function extractAllImports(goDeps: GoPackage[]): string[] {

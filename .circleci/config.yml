@@ -184,7 +184,7 @@ workflows:
           matrix:
             parameters:
               node_version: ["20", "22", "24"]
-              go_version: ["1.15", "1.16", "1.23", "1.24", "1.25"]
+              go_version: ["1.15", "1.16", "1.24", "1.25", "1.26"]
       - test-windows:
           name: Windows with node v<< matrix.node_version >>, go v<< matrix.go_version >>
           context: nodejs-install
@@ -193,7 +193,7 @@ workflows:
           matrix:
             parameters:
               node_version: ["20", "22", "24"]
-              go_version: ["1.15", "1.16", "1.23", "1.24", "1.25"]
+              go_version: ["1.15", "1.16", "1.24", "1.25", "1.26"]
 
       # Release
       - release:

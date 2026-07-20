@@ -22,6 +22,15 @@ export interface Options {
   debug?: boolean;
   file?: string;
   args?: string[];
+  /**
+   * Attach component-metadata labels (hash:sha-256, distribution:url) to
+   * dependency nodes, sourced from go.sum and the Go module proxy.
+   *
+   * Read at the top level (not under `configuration`) to match the shared
+   * convention used by the other plugins (snyk-mvn-plugin,
+   * snyk-nodejs-plugin, ...); the CLI injects it top-level for all plugins.
+   */
+  includeComponentMetadata?: boolean;
   configuration?: {
     includeGoStandardLibraryDeps?: boolean;
     includePackageUrls?: boolean;
@@ -94,6 +103,8 @@ export interface GoModule {
   Indirect: boolean; // is this module only an indirect dependency of main module?
   Dir: string; // directory holding files for this module, if any
   GoMod: string; // path to go.mod file for this module, if any
+  Sum: string; // checksum for path, version (as in go.sum); go >= 1.23 only
+  GoModSum: string; // checksum for go.mod (as in go.sum); go >= 1.23 only
   Error: string; // error loading module
 }
 
