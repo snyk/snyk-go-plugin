@@ -104,6 +104,21 @@ test('buildDistributionUrl', async (t) => {
       undefined,
     );
   });
+
+  t.test(
+    'strips basic-auth credentials embedded in the GOPROXY url',
+    async (t) => {
+      t.equal(
+        buildDistributionUrl(
+          'golang.org/x/text',
+          'v0.3.2',
+          'https://foo:bar@corp.example.com/goproxy/',
+        ),
+        'https://corp.example.com/goproxy/golang.org/x/text/@v/v0.3.2.zip',
+        'credentials must never end up in component metadata',
+      );
+    },
+  );
 });
 
 test('getComponentMetadataLabels', async (t) => {

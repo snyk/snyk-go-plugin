@@ -113,7 +113,18 @@ function resolveGoProxyBase(goproxy: string | undefined): string | undefined {
     // "off", "direct", "none" or empty: no proxy URL we can safely derive.
     return undefined;
   }
-  return first.replace(/\/+$/, '');
+  let parsed: URL;
+  try {
+    parsed = new URL(first);
+  } catch {
+    return undefined;
+  }
+  // Private GOPROXY setups sometimes embed basic-auth credentials in the URL
+  // (e.g. https://user:pass@proxy.corp/). Strip them so they never end up in
+  // component metadata, which is attached to scan results and shipped off-host.
+  parsed.username = '';
+  parsed.password = '';
+  return parsed.toString().replace(/\/+$/, '');
 }
 
 /**
