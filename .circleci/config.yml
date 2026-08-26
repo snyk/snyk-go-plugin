@@ -122,12 +122,12 @@ jobs:
       - install_deps
       - run:
           name: Run tests
-          command: npm test
+          command: npm run test-windows
 
   test-unix:
     <<: *defaults
     docker:
-      - image: circleci/golang:<< parameters.go_version >>
+      - image: cimg/go:<< parameters.go_version >>
     environment:
       GO_VERSION: << parameters.go_version >>
     steps:
@@ -149,32 +149,35 @@ jobs:
       - checkout
       - install_deps
       - run:
-          name: Publish to GitHub
-          command: npx semantic-release
+          name: Release
+          command: |
+            export NPM_ID_TOKEN=$(circleci run oidc get --claims '{"aud": "npm:registry.npmjs.org"}')
+            npx semantic-release@25.0.5
 
 workflows:
-  version: 2
   test_and_release:
     jobs:
       - prodsec/secrets-scan:
           name: Scan repository for secrets
           context:
             - snyk-bot-slack
-          channel: os-team-managed-alerts
+            - prodsec-orb-runtime
+          channel: snyk-vuln-alerts-sca
           filters:
             branches:
               ignore:
                 - main
       - security-scans:
           name: Security Scans
-          node_version: "18.15"
+          node_version: "20.19"
           context:
             - open_source-managed
             - nodejs-install
+            - prodsec-orb-runtime
       - lint:
           name: Lint
           context: nodejs-install
-          node_version: "18.15"
+          node_version: "20.19"
       - test-unix:
           name: Unix with node v<< matrix.node_version >>, go v<< matrix.go_version >>
           context: nodejs-install
@@ -182,8 +185,8 @@ workflows:
             - Lint
           matrix:
             parameters:
-              node_version: ["12", "14", "16"]
-              go_version: ["1.10.8", "1.13.3", "1.14", "1.15", "1.16"]
+              node_version: ["20", "22", "24"]
+              go_version: ["1.15", "1.16", "1.24", "1.25", "1.26"]
       - test-windows:
           name: Windows with node v<< matrix.node_version >>, go v<< matrix.go_version >>
           context: nodejs-install
@@ -191,14 +194,16 @@ workflows:
             - Lint
           matrix:
             parameters:
-              node_version: ["12", "14", "16"]
-              go_version: [ "1.10.8", "1.13.3", "1.14", "1.15", "1.16" ]
+              node_version: ["20", "22", "24"]
+              go_version: ["1.15", "1.16", "1.24", "1.25", "1.26"]
 
       # Release
       - release:
           name: Release
-          context: nodejs-app-release
-          node_version: "18.15"
+          context:
+            - nodejs-install
+            - github-release
+          node_version: "22.14"
           requires:
             - test-unix
             - test-windows

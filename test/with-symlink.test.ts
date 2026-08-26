@@ -36,7 +36,7 @@ test('with nested GOPATH/src/proj symlink-ing to ../..', async (t) => {
   const gopath = path.resolve(rootFolder, 'gopath');
   const cwd = path.join(gopath, 'src', 'proj');
 
-  const manualScriptPath = path.resolve(__dirname, 'manual.ts');
+  const manualScriptPath = path.resolve(__dirname, 'manual.js');
 
   const nativeExport = isRunningOnWindows ? 'SET' : 'export';
   if (isRunningOnWindows) {
@@ -62,14 +62,7 @@ test('with nested GOPATH/src/proj symlink-ing to ../..', async (t) => {
   // NOTE: use spawn(shell=true) for this test,
   //  because node's process.chdir() resolved symlinks,
   //  such that process.cwd() no-longer contains the /gopath/ part
-  const tsNodePath = path.resolve(
-    __dirname,
-    '..',
-    'node_modules',
-    '.bin',
-    'ts-node',
-  );
-  const execPluginCmd = `${tsNodePath} ${manualScriptPath} Gopkg.lock`;
+  const execPluginCmd = `node ${manualScriptPath} Gopkg.lock`;
 
   // If we run on windows, we'd like to "lazy-eval" the env variable, so we wrap w/ quotes. This took a long while to find.
   const exportEnvVarCmd = `${nativeExport} ${
@@ -154,20 +147,13 @@ test('package with broken symlink', async (t) => {
   const gopath = path.resolve(fixtures, 'gopath');
   const cwd = path.join(gopath, 'src', 'path', 'to', 'pkg-with-broken-symlink');
 
-  const manualScriptPath = path.resolve(__dirname, 'manual.ts');
+  const manualScriptPath = path.resolve(__dirname, 'manual.js');
 
   const nativeExport = isRunningOnWindows ? 'SET' : 'export';
   // NOTE: use spawn(shell=true) for this test,
   //  because node's process.chdir() resolved symlinks,
   //  such that process.cwd() no-longer contains the /gopath/ part
-  const tsNodePath = path.resolve(
-    __dirname,
-    '..',
-    'node_modules',
-    '.bin',
-    'ts-node',
-  );
-  const execPluginCmd = `${tsNodePath} ${manualScriptPath} Gopkg.lock`;
+  const execPluginCmd = `node ${manualScriptPath} Gopkg.lock`;
 
   // If we run on windows, we'd like to "lazy-eval" the env variable, so we wrap w/ quotes. This took a long while to find.
   const exportEnvVarCmd = `${nativeExport} ${

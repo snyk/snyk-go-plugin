@@ -925,7 +925,7 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       const expectedDepGraph = JSON.parse(
         load('gomod-small/expected-gomodules-depgraph.json'),
       );
-      t.deepEquals(JSON.stringify(pkg), JSON.stringify(expectedDepGraph));
+      t.equal(JSON.stringify(pkg), JSON.stringify(expectedDepGraph));
     });
   });
 
@@ -949,7 +949,7 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       const expectedDepGraph = JSON.parse(
         load('gomod-small/expected-gomodules-depgraph.json'),
       );
-      t.deepEquals(JSON.stringify(pkg), JSON.stringify(expectedDepGraph));
+      t.equal(JSON.stringify(pkg), JSON.stringify(expectedDepGraph));
     });
   });
 

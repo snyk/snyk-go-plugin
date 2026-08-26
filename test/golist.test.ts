@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { buildDepGraphFromImportsAndModules } from '../lib';
+import { resolveStdlibVersion } from '../lib/helpers';
 import { goVersion } from './go-version';
 import { test } from 'tap';
 
@@ -16,7 +17,7 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       const depGraphAndNotice = await buildDepGraphFromImportsAndModules(
         `${__dirname}/fixtures/golist/import`,
       );
-      t.deepEquals(
+      t.equal(
         JSON.stringify(depGraphAndNotice),
         JSON.stringify(expectedDepGraph),
       );
@@ -29,7 +30,7 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       const depGraphAndNotice = await buildDepGraphFromImportsAndModules(
         `${__dirname}/fixtures/golist/empty`,
       );
-      t.deepEquals(
+      t.equal(
         JSON.stringify(depGraphAndNotice),
         JSON.stringify(expectedDepGraph),
       );
@@ -39,7 +40,9 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
       const depGraph = await buildDepGraphFromImportsAndModules(
         `${__dirname}/fixtures/golist/args`,
         'go.mod',
-        ['-e'],
+        {
+          additionalArgs: ['-e'],
+        },
       );
       t.ok('should pass when -e argument is passed', depGraph);
     });
@@ -50,12 +53,12 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
   test('go list parsing with module information', (t) => {
     t.test('produces dependency graph', async (t) => {
       const expectedDepGraph = JSON.parse(
-        load('gomod-small/expected-gomodules-depgraph.json'),
+        load('gomod-small/expected-gomodules-depgraph-no-purls.json'),
       );
       const depGraphAndNotice = await buildDepGraphFromImportsAndModules(
         `${__dirname}/fixtures/gomod-small`,
       );
-      t.deepEquals(
+      t.equal(
         JSON.stringify(depGraphAndNotice),
         JSON.stringify(expectedDepGraph),
       );
@@ -63,26 +66,92 @@ if (goVersion[0] > 1 || goVersion[1] >= 12) {
     t.end();
   });
 
-  test('go list parsing with replace directive', (t) => {
-    t.test('produces dependency graph', async (t) => {
-      const expectedDepGraph = JSON.parse(
-        load('gomod-replace/expected-depgraph.json'),
-      );
-      const depGraphAndNotice = await buildDepGraphFromImportsAndModules(
-        `${__dirname}/fixtures/gomod-replace`,
-      );
-      t.deepEquals(
-        JSON.stringify(depGraphAndNotice),
-        JSON.stringify(expectedDepGraph),
-      );
-    });
+  test('go list parsing with edge cases', (t) => {
+    t.test(
+      'produces dependency graph',
+      {
+        skip: goVersion[0] <= 1 && goVersion[1] < 21,
+      },
+      async (t) => {
+        const expectedDepGraph = JSON.parse(
+          load('gomod-kitchen-sink/expected-depgraph.json'),
+        );
+        const depGraphAndNotice = await buildDepGraphFromImportsAndModules(
+          `${__dirname}/fixtures/gomod-kitchen-sink`,
+        );
+        t.equal(
+          JSON.stringify(depGraphAndNotice),
+          JSON.stringify(expectedDepGraph),
+        );
+      },
+    );
+    t.end();
+  });
+
+  // Two cmd mains, each with default.pgo: go list emits PGO ImportPath variants
+  // (e.g. github.com/google/uuid [github.com/snyk-test/pgo-test/cmd/svc-a]).
+  test('go list parsing with PGO fixture', (t) => {
+    t.test(
+      'produces dependency graph with normalised package IDs',
+      {
+        skip: goVersion[0] <= 1 && goVersion[1] < 21,
+      },
+      async (t) => {
+        const expectedDepGraph = JSON.parse(
+          load('gomod-pgo/expected-depgraph.json'),
+        );
+        const depGraph = await buildDepGraphFromImportsAndModules(
+          `${__dirname}/fixtures/gomod-pgo`,
+        );
+        t.equal(JSON.stringify(depGraph), JSON.stringify(expectedDepGraph));
+      },
+    );
+
+    t.test(
+      'with includeGoStandardLibraryDeps: std packages (e.g. fmt) use clean names',
+      {
+        skip: goVersion[0] <= 1 && goVersion[1] < 21,
+      },
+      async (t) => {
+        const root = `${__dirname}/fixtures/gomod-pgo`;
+        const stdlibVersion = await resolveStdlibVersion(root, 'go.mod');
+        const depGraph = await buildDepGraphFromImportsAndModules(
+          root,
+          'go.mod',
+          {
+            includeGoStandardLibraryDeps: true,
+            stdlibVersion,
+          },
+        );
+        const names = depGraph.getPkgs().map((p) => p.name);
+        t.ok(
+          names.every((n) => !n.includes(' [')),
+          'no package name contains a PGO/test variant suffix',
+        );
+        t.ok(
+          names.includes('std/fmt'),
+          'stdlib fmt is present when flag is on',
+        );
+        t.ok(
+          names.includes('github.com/google/uuid'),
+          'module dependency uuid is still present',
+        );
+        t.end();
+      },
+    );
     t.end();
   });
 } else {
   test('go list parsing with module information', (t) => {
     t.rejects(
+      buildDepGraphFromImportsAndModules(
+        `${__dirname}/fixtures/gomod-small`,
+        undefined,
+        {
+          stdlibVersion: '1.10',
+        },
+      ),
       'throws on older Go versions',
-      buildDepGraphFromImportsAndModules(`${__dirname}/fixtures/gomod-small`),
     );
     t.end();
   });

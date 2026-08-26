@@ -1,0 +1,384 @@
+{
+  "schemaVersion": "1.3.0",
+  "pkgManager": {
+    "name": "gomodules"
+  },
+  "pkgs": [
+    {
+      "id": "github.com/snyk-test/test-repo@0.0.0",
+      "info": {
+        "name": "github.com/snyk-test/test-repo",
+        "version": "0.0.0",
+        "purl": "pkg:golang/github.com/snyk-test/test-repo@0.0.0"
+      }
+    },
+    {
+      "id": "gopkg.in/yaml.v3@3.0.1",
+      "info": {
+        "name": "gopkg.in/yaml.v3",
+        "version": "3.0.1",
+        "purl": "pkg:golang/gopkg.in/yaml.v3@v3.0.1"
+      }
+    },
+    {
+      "id": "gopkg.in/check.v1@#10cb98267c6c",
+      "info": {
+        "name": "gopkg.in/check.v1",
+        "version": "#10cb98267c6c",
+        "purl": "pkg:golang/gopkg.in/check.v1@v1.0.0-20201130134442-10cb98267c6c"
+      }
+    },
+    {
+      "id": "github.com/kr/pretty@0.3.1",
+      "info": {
+        "name": "github.com/kr/pretty",
+        "version": "0.3.1",
+        "purl": "pkg:golang/github.com/kr/pretty@v0.3.1"
+      }
+    },
+    {
+      "id": "github.com/rogpeppe/go-internal/fmtsort@1.13.1",
+      "info": {
+        "name": "github.com/rogpeppe/go-internal/fmtsort",
+        "version": "1.13.1",
+        "purl": "pkg:golang/github.com/rogpeppe/go-internal@v1.13.1#fmtsort"
+      }
+    },
+    {
+      "id": "github.com/kr/text@0.2.0",
+      "info": {
+        "name": "github.com/kr/text",
+        "version": "0.2.0",
+        "purl": "pkg:golang/github.com/kr/text@v0.2.0"
+      }
+    },
+    {
+      "id": "github.com/stretchr/testify/assert@1.9.0",
+      "info": {
+        "name": "github.com/stretchr/testify/assert",
+        "version": "1.9.0",
+        "purl": "pkg:golang/github.com/stretchr/testify@v1.9.0#assert"
+      }
+    },
+    {
+      "id": "github.com/pmezard/go-difflib/difflib@1.0.0",
+      "info": {
+        "name": "github.com/pmezard/go-difflib/difflib",
+        "version": "1.0.0",
+        "purl": "pkg:golang/github.com/pmezard/go-difflib@v1.0.0#difflib"
+      }
+    },
+    {
+      "id": "github.com/davecgh/go-spew/spew@1.1.1",
+      "info": {
+        "name": "github.com/davecgh/go-spew/spew",
+        "version": "1.1.1",
+        "purl": "pkg:golang/github.com/davecgh/go-spew@v1.1.1#spew"
+      }
+    },
+    {
+      "id": "github.com/snyk-test/test-repo/submodule@0.0.0",
+      "info": {
+        "name": "github.com/snyk-test/test-repo/submodule",
+        "version": "0.0.0",
+        "purl": "pkg:golang/github.com/snyk-test/test-repo/submodule@v0.0.0"
+      }
+    },
+    {
+      "id": "github.com/google/uuid@1.6.0",
+      "info": {
+        "name": "github.com/google/uuid",
+        "version": "1.6.0",
+        "purl": "pkg:golang/github.com/google/uuid@v1.6.0"
+      }
+    },
+    {
+      "id": "github.com/n1lesh/mock/gomock@1.6.0",
+      "info": {
+        "name": "github.com/n1lesh/mock/gomock",
+        "version": "1.6.0",
+        "purl": "pkg:golang/github.com/n1lesh/mock@v1.6.0#gomock"
+      }
+    },
+    {
+      "id": "github.com/go-redis/redis@6.15.9",
+      "info": {
+        "name": "github.com/go-redis/redis",
+        "version": "6.15.9",
+        "purl": "pkg:golang/github.com/go-redis/redis@v6.15.9+incompatible"
+      }
+    },
+    {
+      "id": "github.com/go-redis/redis/internal/proto@6.15.9",
+      "info": {
+        "name": "github.com/go-redis/redis/internal/proto",
+        "version": "6.15.9",
+        "purl": "pkg:golang/github.com/go-redis/redis@v6.15.9+incompatible#internal/proto"
+      }
+    },
+    {
+      "id": "github.com/go-redis/redis/internal/util@6.15.9",
+      "info": {
+        "name": "github.com/go-redis/redis/internal/util",
+        "version": "6.15.9",
+        "purl": "pkg:golang/github.com/go-redis/redis@v6.15.9+incompatible#internal/util"
+      }
+    },
+    {
+      "id": "github.com/go-redis/redis/internal/pool@6.15.9",
+      "info": {
+        "name": "github.com/go-redis/redis/internal/pool",
+        "version": "6.15.9",
+        "purl": "pkg:golang/github.com/go-redis/redis@v6.15.9+incompatible#internal/pool"
+      }
+    },
+    {
+      "id": "github.com/go-redis/redis/internal@6.15.9",
+      "info": {
+        "name": "github.com/go-redis/redis/internal",
+        "version": "6.15.9",
+        "purl": "pkg:golang/github.com/go-redis/redis@v6.15.9+incompatible#internal"
+      }
+    },
+    {
+      "id": "github.com/go-redis/redis/internal/hashtag@6.15.9",
+      "info": {
+        "name": "github.com/go-redis/redis/internal/hashtag",
+        "version": "6.15.9",
+        "purl": "pkg:golang/github.com/go-redis/redis@v6.15.9+incompatible#internal/hashtag"
+      }
+    },
+    {
+      "id": "github.com/go-redis/redis/internal/consistenthash@6.15.9",
+      "info": {
+        "name": "github.com/go-redis/redis/internal/consistenthash",
+        "version": "6.15.9",
+        "purl": "pkg:golang/github.com/go-redis/redis@v6.15.9+incompatible#internal/consistenthash"
+      }
+    },
+    {
+      "id": "github.com/go-chi/chi/v5@5.2.5",
+      "info": {
+        "name": "github.com/go-chi/chi/v5",
+        "version": "5.2.5",
+        "purl": "pkg:golang/github.com/go-chi/chi/v5@v5.2.5"
+      }
+    }
+  ],
+  "graph": {
+    "rootNodeId": "root-node",
+    "nodes": [
+      {
+        "nodeId": "root-node",
+        "pkgId": "github.com/snyk-test/test-repo@0.0.0",
+        "deps": [
+          {
+            "nodeId": "gopkg.in/yaml.v3"
+          },
+          {
+            "nodeId": "gopkg.in/check.v1"
+          },
+          {
+            "nodeId": "github.com/stretchr/testify/assert"
+          },
+          {
+            "nodeId": "github.com/snyk-test/test-repo/submodule"
+          },
+          {
+            "nodeId": "github.com/golang/mock/gomock"
+          },
+          {
+            "nodeId": "github.com/go-redis/redis"
+          },
+          {
+            "nodeId": "github.com/go-chi/chi/v5"
+          }
+        ]
+      },
+      {
+        "nodeId": "gopkg.in/yaml.v3",
+        "pkgId": "gopkg.in/yaml.v3@3.0.1",
+        "deps": []
+      },
+      {
+        "nodeId": "gopkg.in/check.v1",
+        "pkgId": "gopkg.in/check.v1@#10cb98267c6c",
+        "deps": [
+          {
+            "nodeId": "github.com/kr/pretty"
+          }
+        ]
+      },
+      {
+        "nodeId": "github.com/kr/pretty",
+        "pkgId": "github.com/kr/pretty@0.3.1",
+        "deps": [
+          {
+            "nodeId": "github.com/rogpeppe/go-internal/fmtsort"
+          },
+          {
+            "nodeId": "github.com/kr/text"
+          }
+        ]
+      },
+      {
+        "nodeId": "github.com/rogpeppe/go-internal/fmtsort",
+        "pkgId": "github.com/rogpeppe/go-internal/fmtsort@1.13.1",
+        "deps": []
+      },
+      {
+        "nodeId": "github.com/kr/text",
+        "pkgId": "github.com/kr/text@0.2.0",
+        "deps": []
+      },
+      {
+        "nodeId": "github.com/stretchr/testify/assert",
+        "pkgId": "github.com/stretchr/testify/assert@1.9.0",
+        "deps": [
+          {
+            "nodeId": "gopkg.in/yaml.v3"
+          },
+          {
+            "nodeId": "github.com/pmezard/go-difflib/difflib"
+          },
+          {
+            "nodeId": "github.com/davecgh/go-spew/spew"
+          }
+        ]
+      },
+      {
+        "nodeId": "github.com/pmezard/go-difflib/difflib",
+        "pkgId": "github.com/pmezard/go-difflib/difflib@1.0.0",
+        "deps": []
+      },
+      {
+        "nodeId": "github.com/davecgh/go-spew/spew",
+        "pkgId": "github.com/davecgh/go-spew/spew@1.1.1",
+        "deps": []
+      },
+      {
+        "nodeId": "github.com/snyk-test/test-repo/submodule",
+        "pkgId": "github.com/snyk-test/test-repo/submodule@0.0.0",
+        "deps": [
+          {
+            "nodeId": "github.com/google/uuid"
+          }
+        ]
+      },
+      {
+        "nodeId": "github.com/google/uuid",
+        "pkgId": "github.com/google/uuid@1.6.0",
+        "deps": []
+      },
+      {
+        "nodeId": "github.com/golang/mock/gomock",
+        "pkgId": "github.com/n1lesh/mock/gomock@1.6.0",
+        "deps": []
+      },
+      {
+        "nodeId": "github.com/go-redis/redis",
+        "pkgId": "github.com/go-redis/redis@6.15.9",
+        "deps": [
+          {
+            "nodeId": "github.com/go-redis/redis/internal/proto"
+          },
+          {
+            "nodeId": "github.com/go-redis/redis/internal/pool"
+          },
+          {
+            "nodeId": "github.com/go-redis/redis/internal/hashtag"
+          },
+          {
+            "nodeId": "github.com/go-redis/redis/internal/consistenthash"
+          },
+          {
+            "nodeId": "github.com/go-redis/redis/internal:pruned"
+          }
+        ]
+      },
+      {
+        "nodeId": "github.com/go-redis/redis/internal/proto",
+        "pkgId": "github.com/go-redis/redis/internal/proto@6.15.9",
+        "deps": [
+          {
+            "nodeId": "github.com/go-redis/redis/internal/util"
+          }
+        ]
+      },
+      {
+        "nodeId": "github.com/go-redis/redis/internal/util",
+        "pkgId": "github.com/go-redis/redis/internal/util@6.15.9",
+        "deps": []
+      },
+      {
+        "nodeId": "github.com/go-redis/redis/internal/pool",
+        "pkgId": "github.com/go-redis/redis/internal/pool@6.15.9",
+        "deps": [
+          {
+            "nodeId": "github.com/go-redis/redis/internal/proto:pruned"
+          },
+          {
+            "nodeId": "github.com/go-redis/redis/internal"
+          }
+        ]
+      },
+      {
+        "nodeId": "github.com/go-redis/redis/internal/proto:pruned",
+        "pkgId": "github.com/go-redis/redis/internal/proto@6.15.9",
+        "deps": [],
+        "info": {
+          "labels": {
+            "pruned": "true"
+          }
+        }
+      },
+      {
+        "nodeId": "github.com/go-redis/redis/internal",
+        "pkgId": "github.com/go-redis/redis/internal@6.15.9",
+        "deps": [
+          {
+            "nodeId": "github.com/go-redis/redis/internal/util:pruned"
+          },
+          {
+            "nodeId": "github.com/go-redis/redis/internal/proto:pruned"
+          }
+        ]
+      },
+      {
+        "nodeId": "github.com/go-redis/redis/internal/util:pruned",
+        "pkgId": "github.com/go-redis/redis/internal/util@6.15.9",
+        "deps": [],
+        "info": {
+          "labels": {
+            "pruned": "true"
+          }
+        }
+      },
+      {
+        "nodeId": "github.com/go-redis/redis/internal/hashtag",
+        "pkgId": "github.com/go-redis/redis/internal/hashtag@6.15.9",
+        "deps": []
+      },
+      {
+        "nodeId": "github.com/go-redis/redis/internal/consistenthash",
+        "pkgId": "github.com/go-redis/redis/internal/consistenthash@6.15.9",
+        "deps": []
+      },
+      {
+        "nodeId": "github.com/go-redis/redis/internal:pruned",
+        "pkgId": "github.com/go-redis/redis/internal@6.15.9",
+        "deps": [],
+        "info": {
+          "labels": {
+            "pruned": "true"
+          }
+        }
+      },
+      {
+        "nodeId": "github.com/go-chi/chi/v5",
+        "pkgId": "github.com/go-chi/chi/v5@5.2.5",
+        "deps": []
+      }
+    ]
+  }
+}
