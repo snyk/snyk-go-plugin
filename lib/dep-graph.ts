@@ -60,7 +60,7 @@ interface GraphOptions {
    **/
   useReplaceName?: boolean;
   /**
-   * Attach component-metadata labels (hash:sha-256, distribution:url) to
+   * Attach component-metadata labels (hash:sha-256, vcs:url) to
    * dependency nodes, sourced from go.sum.
    */
   includeComponentMetadata?: boolean;
@@ -70,13 +70,6 @@ interface GraphOptions {
    * includeComponentMetadata is set.
    */
   goSumHashes?: GoSumHashes;
-  /**
-   * Internal: effective GOPROXY from `go env GOPROXY`, resolved once and
-   * threaded through so distribution URLs honour the go env file / env var
-   * precedence rather than only the process environment. Populated when
-   * includeComponentMetadata is set.
-   */
-  goProxy?: string;
 }
 
 export async function buildDepGraphFromImportsAndModules(
@@ -100,7 +93,6 @@ export async function buildDepGraphFromImportsAndModules(
 
   if (options.includeComponentMetadata) {
     options.goSumHashes = readGoSum(root, targetFile);
-    options.goProxy = await readGoProxy(root, targetFile);
   }
 
   let rootPkg = createPkgInfo(projectName, projectVersion, options);
@@ -291,18 +283,24 @@ function readGoSum(root: string, targetFile: string): GoSumHashes {
   }
 }
 
-// Resolve the effective GOPROXY via `go env GOPROXY`, which applies go's own
-// precedence (env var > go env file > built-in default) — unlike reading
-// process.env.GOPROXY, which misses values set with `go env -w`. Returns
-// undefined if the lookup fails so URL derivation can fall back to the default.
-async function readGoProxy(
-  root: string,
-  targetFile: string,
-): Promise<string | undefined> {
+// Read the source repository URL from go's Origin metadata for an already
+// downloaded module. `goMod` is `Module.GoMod` from `go list`, which points at
+// `<cache>/download/<mod>/@v/<version>.mod`; the sibling `<version>.info` file
+// carries the Origin block (VCS/URL/Ref/Hash) when the module was fetched
+// `direct` or from a proxy that serves origin data. This is a plain on-disk
+// read of the existing module cache — no network and no extra `go` invocation.
+// Returns undefined whenever Origin is absent or the file cannot be read/parsed
+// (e.g. the common proxy.golang.org case, which serves no origin metadata), so
+// URL resolution falls back to the module-path heuristic.
+function readModuleOriginUrl(goMod: string | undefined): string | undefined {
+  if (!goMod || !goMod.endsWith('.mod')) {
+    return undefined;
+  }
+  const infoPath = goMod.slice(0, -'.mod'.length) + '.info';
   try {
-    const cwd = path.resolve(root, path.dirname(targetFile));
-    const out = await runGo(['env', 'GOPROXY'], { cwd });
-    return out.trim() || undefined;
+    const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+    const url = info?.Origin?.URL;
+    return typeof url === 'string' ? url : undefined;
   } catch {
     return undefined;
   }
@@ -325,16 +323,16 @@ function getComponentLabelsForModule(
 
   const replace = goModule.Replace;
   const useReplaceInfo = replace?.Path && replace?.Version;
-  const modulePath = useReplaceInfo ? replace.Path : goModule.Path;
-  const version = useReplaceInfo ? replace.Version : goModule.Version;
+  const module = useReplaceInfo ? replace : goModule;
+  const modulePath = module.Path;
+  const version = module.Version;
   if (!modulePath || !version) {
     return {};
   }
 
-  const h1 =
-    (useReplaceInfo ? replace.Sum : goModule.Sum) ||
-    options.goSumHashes?.[`${modulePath}@${version}`];
-  return getComponentMetadataLabels(modulePath, version, h1, options.goProxy);
+  const h1 = module.Sum || options.goSumHashes?.[`${modulePath}@${version}`];
+  const originUrl = readModuleOriginUrl(module.GoMod);
+  return getComponentMetadataLabels(modulePath, h1, originUrl);
 }
 
 function extractAllImports(goDeps: GoPackage[]): string[] {

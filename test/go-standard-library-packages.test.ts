@@ -82,9 +82,6 @@ test('std-lib packages carry no component-metadata labels', async (t) => {
   for (const node of stdNodes) {
     const labels = node.info?.labels || {};
     t.notOk(labels['hash:sha-256'], `${node.pkgId} has no hash:sha-256 label`);
-    t.notOk(
-      labels['distribution:url'],
-      `${node.pkgId} has no distribution:url label`,
-    );
+    t.notOk(labels['vcs:url'], `${node.pkgId} has no vcs:url label`);
   }
 });
