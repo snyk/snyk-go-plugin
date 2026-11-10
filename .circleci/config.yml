@@ -169,7 +169,7 @@ workflows:
                 - main
       - security-scans:
           name: Security Scans
-          node_version: "20.19"
+          node_version: "22"
           context:
             - engines_sca-scanners
             - nodejs-install
@@ -177,7 +177,7 @@ workflows:
       - lint:
           name: Lint
           context: nodejs-install
-          node_version: "20.19"
+          node_version: "22"
       - test-unix:
           name: Unix with node v<< matrix.node_version >>, go v<< matrix.go_version >>
           context: nodejs-install
@@ -185,7 +185,7 @@ workflows:
             - Lint
           matrix:
             parameters:
-              node_version: ["20", "22", "24"]
+              node_version: ["22", "24", "26"]
               go_version: ["1.15", "1.16", "1.24", "1.25", "1.26"]
       - test-windows:
           name: Windows with node v<< matrix.node_version >>, go v<< matrix.go_version >>
@@ -194,7 +194,7 @@ workflows:
             - Lint
           matrix:
             parameters:
-              node_version: ["20", "22", "24"]
+              node_version: ["22", "24", "26"]
               go_version: ["1.15", "1.16", "1.24", "1.25", "1.26"]
 
       # Release
@@ -203,7 +203,7 @@ workflows:
           context:
             - nodejs-install
             - github-release
-          node_version: "22.14"
+          node_version: "22"
           requires:
             - test-unix
             - test-windows
