@@ -66,6 +66,41 @@ export async function execute(
   });
 }
 
+// Go prints the modules whose go.sum hash is missing on a hint line such as
+// "\tgo mod download cloud.google.com/go/compute". Plain `go mod download`
+// does not restore that hash (golang/go#45332), so the module has to be named.
+const GO_MOD_DOWNLOAD_HINT =
+  /^[ \t]*go mod download((?:[ \t]+\S+)+)[ \t]*\r?$/m;
+
+// Matches a Go module path with an optional "@version", using only the
+// characters Go allows in module paths and versions.
+function isSafeModuleArg(arg: string): boolean {
+  const [modulePath, version, ...rest] = arg.split('@');
+  if (rest.length > 0 || modulePath.startsWith('-')) {
+    return false;
+  }
+  if (
+    version !== undefined &&
+    !/^[A-Za-z0-9][A-Za-z0-9._+~-]*$/.test(version)
+  ) {
+    return false;
+  }
+  return modulePath
+    .split('/')
+    .every(
+      (element) =>
+        /^[A-Za-z0-9._~-]+$/.test(element) &&
+        !element.startsWith('.') &&
+        !element.endsWith('.'),
+    );
+}
+
+function getModulesToDownload(err: any): string[] {
+  const hint = GO_MOD_DOWNLOAD_HINT.exec(err);
+  const modules = hint ? hint[1].trim().split(/\s+/) : [];
+  return modules.every(isSafeModuleArg) ? modules : [];
+}
+
 export async function runGo(
   args: string[],
   options: ExecOptions,
@@ -75,11 +110,17 @@ export async function runGo(
     return await execute('go', args, options);
   } catch (err: any) {
     const [command] = /(go mod download)|(go get [^"]*)/.exec(err) || [];
-    if (command && !additionalGoCommands.includes(command)) {
-      debug('running command:', command);
-      const newArgs = command.split(' ').slice(1);
-      await execute('go', newArgs, options);
-      return runGo(args, options, additionalGoCommands.concat(command));
+    if (command) {
+      const newArgs =
+        command === 'go mod download'
+          ? ['mod', 'download', ...getModulesToDownload(err)]
+          : command.split(' ').slice(1);
+      const recovery = ['go', ...newArgs].join(' ');
+      if (!additionalGoCommands.includes(recovery)) {
+        debug('running command:', recovery);
+        await execute('go', newArgs, options);
+        return runGo(args, options, additionalGoCommands.concat(recovery));
+      }
     }
     throw err;
   }
