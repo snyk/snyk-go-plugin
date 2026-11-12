@@ -23,8 +23,8 @@ export interface Options {
   file?: string;
   args?: string[];
   /**
-   * Attach component-metadata labels (hash:sha-256, distribution:url) to
-   * dependency nodes, sourced from go.sum and the Go module proxy.
+   * Attach component-metadata labels (hash:sha-256, vcs:url) to
+   * dependency nodes, sourced from go.sum and the Go module cache.
    *
    * Read at the top level (not under `configuration`) to match the shared
    * convention used by the other plugins (snyk-mvn-plugin,

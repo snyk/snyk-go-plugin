@@ -1,8 +1,7 @@
 import { test } from 'tap';
 import {
   decodeH1ToSha256Hex,
-  escapeModulePath,
-  buildDistributionUrl,
+  buildVcsUrl,
   getComponentMetadataLabels,
   parseGoSum,
 } from '../lib/component-metadata';
@@ -61,103 +60,111 @@ test('decodeH1ToSha256Hex', async (t) => {
   );
 });
 
-test('escapeModulePath', async (t) => {
-  t.equal(
-    escapeModulePath('github.com/BurntSushi/toml'),
-    'github.com/!burnt!sushi/toml',
-    'uppercase letters become !lowercase',
-  );
-  t.equal(
-    escapeModulePath('golang.org/x/text'),
-    'golang.org/x/text',
-    'all-lowercase path is unchanged',
-  );
-});
-
-test('buildDistributionUrl', async (t) => {
-  t.test('defaults to proxy.golang.org when GOPROXY is empty', async (t) => {
+test('buildVcsUrl', async (t) => {
+  t.test('prefers go Origin metadata when present', async (t) => {
     t.equal(
-      buildDistributionUrl('golang.org/x/text', 'v0.3.2', undefined),
-      'https://proxy.golang.org/golang.org/x/text/@v/v0.3.2.zip',
+      buildVcsUrl('rsc.io/quote', 'https://github.com/rsc/quote'),
+      'https://github.com/rsc/quote',
+      'origin resolves a vanity path the module path alone cannot',
     );
   });
 
-  t.test('honours an http(s) GOPROXY, taking the first entry', async (t) => {
+  t.test('trims a trailing slash from the origin url', async (t) => {
     t.equal(
-      buildDistributionUrl(
-        'golang.org/x/text',
-        'v0.3.2',
-        'https://corp.example.com/goproxy/,direct',
+      buildVcsUrl('example.com/mod', 'https://git.example.com/team/mod/'),
+      'https://git.example.com/team/mod',
+    );
+  });
+
+  t.test('strips basic-auth credentials from the origin url', async (t) => {
+    t.equal(
+      buildVcsUrl(
+        'example.com/mod',
+        'https://foo:bar@git.example.com/team/mod',
       ),
-      'https://corp.example.com/goproxy/golang.org/x/text/@v/v0.3.2.zip',
-      'trailing slash trimmed, first list entry used',
+      'https://git.example.com/team/mod',
+      'credentials must never end up in component metadata',
     );
   });
 
-  t.test('returns undefined for off/direct', async (t) => {
+  t.test('derives a url from the module path for known hosts', async (t) => {
     t.equal(
-      buildDistributionUrl('golang.org/x/text', 'v0.3.2', 'off'),
-      undefined,
+      buildVcsUrl('github.com/pkg/errors', undefined),
+      'https://github.com/pkg/errors',
     );
     t.equal(
-      buildDistributionUrl('golang.org/x/text', 'v0.3.2', 'direct'),
-      undefined,
+      buildVcsUrl('gitlab.com/team/project', undefined),
+      'https://gitlab.com/team/project',
+    );
+    t.equal(
+      buildVcsUrl('bitbucket.org/team/repo', undefined),
+      'https://bitbucket.org/team/repo',
     );
   });
 
-  t.test(
-    'strips basic-auth credentials embedded in the GOPROXY url',
-    async (t) => {
-      t.equal(
-        buildDistributionUrl(
-          'golang.org/x/text',
-          'v0.3.2',
-          'https://foo:bar@corp.example.com/goproxy/',
-        ),
-        'https://corp.example.com/goproxy/golang.org/x/text/@v/v0.3.2.zip',
-        'credentials must never end up in component metadata',
-      );
-    },
-  );
+  t.test('reduces submodule and /vN paths to the repo root', async (t) => {
+    t.equal(
+      buildVcsUrl('github.com/foo/bar/v2', undefined),
+      'https://github.com/foo/bar',
+      'the semantic-import-versioning suffix is dropped',
+    );
+    t.equal(
+      buildVcsUrl('github.com/foo/bar/submodule', undefined),
+      'https://github.com/foo/bar',
+      'a submodule path resolves to its repo root',
+    );
+  });
+
+  t.test('returns undefined for a vanity path with no origin', async (t) => {
+    // The public proxy serves no origin metadata, and rsc.io does not map to a
+    // repo root — so rather than guess a wrong URL, emit nothing.
+    t.equal(buildVcsUrl('rsc.io/quote', undefined), undefined);
+    t.equal(buildVcsUrl('golang.org/x/text', undefined), undefined);
+  });
+
+  t.test('ignores a non-http(s) origin url', async (t) => {
+    t.equal(
+      buildVcsUrl('github.com/foo/bar', 'git@github.com:foo/bar.git'),
+      'https://github.com/foo/bar',
+      'falls back to the path heuristic for ssh/scp remotes',
+    );
+    t.equal(
+      buildVcsUrl('example.com/mod', 'ssh://git@git.example.com/mod'),
+      undefined,
+      'no http(s) origin and no known host -> no label',
+    );
+  });
 });
 
 test('getComponentMetadataLabels', async (t) => {
-  t.test(
-    'emits hash and distribution url when the module hash is known',
-    async (t) => {
-      const labels = getComponentMetadataLabels(
-        'golang.org/x/text',
-        'v0.3.2',
-        H1,
-        undefined,
-      );
-      t.strictSame(labels, {
-        'hash:sha-256': H1_HEX,
-        'distribution:url':
-          'https://proxy.golang.org/golang.org/x/text/@v/v0.3.2.zip',
-      });
-    },
-  );
+  t.test('emits hash and vcs url when both are known', async (t) => {
+    const labels = getComponentMetadataLabels(
+      'github.com/pkg/errors',
+      H1,
+      undefined,
+    );
+    t.strictSame(labels, {
+      'hash:sha-256': H1_HEX,
+      'vcs:url': 'https://github.com/pkg/errors',
+    });
+  });
 
   t.test('omits the hash when the module has no hash', async (t) => {
     const labels = getComponentMetadataLabels(
-      'golang.org/x/text',
-      'v0.3.2',
+      'github.com/pkg/errors',
       undefined,
       undefined,
     );
     t.strictSame(labels, {
-      'distribution:url':
-        'https://proxy.golang.org/golang.org/x/text/@v/v0.3.2.zip',
+      'vcs:url': 'https://github.com/pkg/errors',
     });
   });
 
-  t.test('omits the url when GOPROXY offers nothing to derive', async (t) => {
+  t.test('omits the vcs url when it cannot be resolved', async (t) => {
     const labels = getComponentMetadataLabels(
       'golang.org/x/text',
-      'v0.3.2',
       H1,
-      'off',
+      undefined,
     );
     t.strictSame(labels, { 'hash:sha-256': H1_HEX });
   });
