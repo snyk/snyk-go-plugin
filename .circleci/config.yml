@@ -39,7 +39,7 @@ commands:
     steps:
       - run:
           name: Install dependencies
-          command: npm install
+          command: npm ci
   install_node_npm_and_nvm:
     description: Install correct Node version
     parameters:
