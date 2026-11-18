@@ -57,6 +57,45 @@ export async function execute(
   });
 }
 
+// Well-known `go` toolchain failures seen when a (private) module or the
+// module proxy / checksum database cannot be reached from the current
+// environment.
+const PRIVATE_MODULE_FAILURE_PATTERNS: RegExp[] = [
+  /could not read Username/i,
+  /no required module provides package/i,
+  /cannot find module providing package/i,
+  /unrecognized import path/i,
+  /dial tcp/i,
+  /module lookup disabled by GOPROXY=off/i,
+  /terminal prompts disabled/i,
+  /(?:reading|fetching) https?:\/\/\S+: (?:40[134]|410) /i,
+];
+
+const PRIVATE_MODULE_HINT_MARKER = 'Snyk hint:';
+
+/**
+ * Appends an actionable hint to go toolchain stderr that looks like a
+ * network / private module failure. The original text is preserved verbatim at
+ * the start of the returned string so callers matching on it keep working.
+ */
+export function addPrivateModuleHint(output: string): string {
+  if (
+    !output ||
+    output.includes(PRIVATE_MODULE_HINT_MARKER) ||
+    !PRIVATE_MODULE_FAILURE_PATTERNS.some((re) => re.test(output))
+  ) {
+    return output;
+  }
+  const sep = output.endsWith('\n') ? '' : '\n';
+  return (
+    `${output}${sep}${PRIVATE_MODULE_HINT_MARKER} the go command could not fetch one or more modules. ` +
+    'If these are private modules, check that GOPROXY, GOPRIVATE, GONOSUMDB and GOFLAGS ' +
+    '(and any credentials such as .netrc or git configuration) are set the same way as for `go build` in your CI, ' +
+    'and that those environment variables are available to the Snyk process. ' +
+    'Re-run with -d for debug output.'
+  );
+}
+
 export async function runGo(
   args: string[],
   options: ExecOptions,
@@ -72,6 +111,6 @@ export async function runGo(
       await execute('go', newArgs, options);
       return runGo(args, options, additionalGoCommands.concat(command));
     }
-    throw err;
+    throw typeof err === 'string' ? addPrivateModuleHint(err) : err;
   }
 }
