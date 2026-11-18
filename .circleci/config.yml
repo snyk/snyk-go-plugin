@@ -1,8 +1,10 @@
 version: 2.1
 
 orbs:
-  win: circleci/windows@2.4.0
+  # Snyk-owned orbs: track the latest release of the major version
   prodsec: snyk/prodsec-orb@1
+  # Third-party orbs: always pin an exact version
+  win: circleci/windows@5.1.1
 
 defaults: &defaults
   parameters:
@@ -194,7 +196,8 @@ workflows:
             - Lint
           matrix:
             parameters:
-              node_version: ["22", "24", "26"]
+              # nvm-windows can't resolve bare majors such as "22": pin full versions
+              node_version: ["22.23.5", "24.22.3", "26.13.1"]
               go_version: ["1.15", "1.16", "1.24", "1.25", "1.26"]
 
       # Release
