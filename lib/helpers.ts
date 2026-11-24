@@ -1,8 +1,18 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as subProcess from './sub-process';
+import { LATEST_GO_PATCH_BY_MINOR } from './go-releases';
 import debugLib = require('debug');
 const debug = debugLib('snyk-go-plugin');
+
+export interface ResolveStdlibVersionOptions {
+  /**
+   * Derive the version from go.mod only (`toolchain`, then `go` directive)
+   * and use `go version` as the last resort. When false, only a full
+   * `toolchain goX.Y.Z` line is read from go.mod.
+   */
+  fromGoMod?: boolean;
+}
 
 /**
  * Determine the Go tool-chain version (e.g. "1.22.2") to be used
@@ -11,13 +21,25 @@ const debug = debugLib('snyk-go-plugin');
  * 1. Looks for a `toolchain goX.Y.Z` directive in `go.mod`.
  * 2. Falls back to the `go version` output when the directive is absent.
  *
+ * With `fromGoMod`, step 1 also accepts `toolchain goX.Y` and the `go`
+ * directive. A version without patch maps to the latest patch of that minor.
+ *
  * Returns the version **without** the leading `go` prefix or
  * the string `unknown` when the version cannot be resolved.
  */
 export async function resolveStdlibVersion(
   root: string,
   targetFile: string,
+  options: ResolveStdlibVersionOptions = {},
 ): Promise<string> {
+  if (options.fromGoMod) {
+    const fromGoMod = readVersionFromGoMod(root, targetFile);
+    if (fromGoMod) {
+      return fromGoMod;
+    }
+    return resolveFromGoVersionCommand(root);
+  }
+
   // 1) Try to read from go.mod the toolchian version e.g.`toolchain goX.Y.Z`
   let toolChainMatch: RegExpMatchArray | null = null;
 
@@ -35,6 +57,10 @@ export async function resolveStdlibVersion(
   }
 
   // 2) Try to read from the `go version` command output
+  return resolveFromGoVersionCommand(root);
+}
+
+async function resolveFromGoVersionCommand(root: string): Promise<string> {
   const output = await subProcess.execute('go', ['version'], { cwd: root });
   const versionMatch = /\d+\.\d+(\.\d+)?/.exec(output)![0];
   if (versionMatch) {
@@ -43,6 +69,39 @@ export async function resolveStdlibVersion(
   }
 
   return 'unknown';
+}
+
+const GO_VERSION_PATTERN = '(\\d+)\\.(\\d+)(?:\\.(\\d+))?(?:(rc|beta)(\\d+))?';
+const TOOLCHAIN_REGEX = new RegExp(
+  `^\\s*toolchain\\s+go${GO_VERSION_PATTERN}`,
+  'm',
+);
+const GO_DIRECTIVE_REGEX = new RegExp(`^\\s*go\\s+${GO_VERSION_PATTERN}`, 'm');
+
+function readVersionFromGoMod(root: string, targetFile: string): string | null {
+  let content: string;
+  try {
+    content = fs.readFileSync(path.resolve(root, targetFile), 'utf8');
+  } catch {
+    debug('Failed to read go.mod', { root, targetFile });
+    return null;
+  }
+
+  const match =
+    TOOLCHAIN_REGEX.exec(content) || GO_DIRECTIVE_REGEX.exec(content);
+  if (!match) {
+    return null;
+  }
+  const [, major, minor, patch, preKind, preNumber] = match;
+  if (preKind) {
+    // Pre-release of the .0 release, e.g. go1.22rc1 -> 1.22.0-rc1
+    return `${major}.${minor}.${patch ?? '0'}-${preKind}${preNumber}`;
+  }
+  if (patch !== undefined) {
+    return `${major}.${minor}.${patch}`;
+  }
+  const latestPatch = LATEST_GO_PATCH_BY_MINOR[`${major}.${minor}`] ?? 0;
+  return `${major}.${minor}.${latestPatch}`;
 }
 
 // Better error message than JSON.parse

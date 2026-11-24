@@ -33,6 +33,12 @@ export interface Options {
   includeComponentMetadata?: boolean;
   configuration?: {
     includeGoStandardLibraryDeps?: boolean;
+    /**
+     * Take the version of standard library nodes from go.mod (`toolchain`
+     * line, else `go` directive) instead of the local Go installation.
+     * Only applies with includeGoStandardLibraryDeps. Default: false.
+     */
+    stdlibVersionFromGoMod?: boolean;
     includePackageUrls?: boolean;
     /**
      * Temporary config value to enable proper identification
