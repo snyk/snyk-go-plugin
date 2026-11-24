@@ -36,4 +36,4 @@ To disable this behaviour, it can be turned off through the options passed to th
 
 ## Standard library version
 
-With `configuration.includeGoStandardLibraryDeps`, `std/<pkg>` nodes use the version of the local Go installation (or `toolchain goX.Y.Z` from `go.mod`). Set `configuration.stdlibVersionFromGoMod: true` to take the version from `go.mod` only: the `toolchain` line, else the `go` directive, else `go version`. A version without patch (`go 1.22`) maps to the latest patch of that minor, from a table in `lib/go-releases.ts`.
+With `configuration.includeGoStandardLibraryDeps`, `std/<pkg>` nodes use the version of the local Go installation (or `toolchain goX.Y.Z` from `go.mod`). Set `configuration.stdlibVersionFromGoMod: true` to take the version from `go.mod` only: the `toolchain` line, else the `go` directive, else `go version`. A version without patch (`go 1.22`) maps to `configuration.goLatestPatchVersions['1.22']`, a map from `X.Y` to the latest patch such as `{ '1.22': '1.22.12' }`. A minor missing from the map, or no map, gives `X.Y.0`.

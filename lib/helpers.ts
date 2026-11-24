@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as subProcess from './sub-process';
-import { LATEST_GO_PATCH_BY_MINOR } from './go-releases';
 import debugLib = require('debug');
 const debug = debugLib('snyk-go-plugin');
 
@@ -12,6 +11,12 @@ export interface ResolveStdlibVersionOptions {
    * `toolchain goX.Y.Z` line is read from go.mod.
    */
   fromGoMod?: boolean;
+  /**
+   * Latest patch version per minor, keyed by 'X.Y' (e.g. { '1.22': '1.22.12' }).
+   * Used with `fromGoMod` when go.mod gives no patch. A minor that is not
+   * listed maps to X.Y.0.
+   */
+  latestPatchVersions?: Record<string, string>;
 }
 
 /**
@@ -22,7 +27,7 @@ export interface ResolveStdlibVersionOptions {
  * 2. Falls back to the `go version` output when the directive is absent.
  *
  * With `fromGoMod`, step 1 also accepts `toolchain goX.Y` and the `go`
- * directive. A version without patch maps to the latest patch of that minor.
+ * directive. A version without patch maps to `latestPatchVersions[X.Y]`, else X.Y.0.
  *
  * Returns the version **without** the leading `go` prefix or
  * the string `unknown` when the version cannot be resolved.
@@ -33,7 +38,11 @@ export async function resolveStdlibVersion(
   options: ResolveStdlibVersionOptions = {},
 ): Promise<string> {
   if (options.fromGoMod) {
-    const fromGoMod = readVersionFromGoMod(root, targetFile);
+    const fromGoMod = readVersionFromGoMod(
+      root,
+      targetFile,
+      options.latestPatchVersions,
+    );
     if (fromGoMod) {
       return fromGoMod;
     }
@@ -78,7 +87,11 @@ const TOOLCHAIN_REGEX = new RegExp(
 );
 const GO_DIRECTIVE_REGEX = new RegExp(`^\\s*go\\s+${GO_VERSION_PATTERN}`, 'm');
 
-function readVersionFromGoMod(root: string, targetFile: string): string | null {
+function readVersionFromGoMod(
+  root: string,
+  targetFile: string,
+  latestPatchVersions: Record<string, string> = {},
+): string | null {
   let content: string;
   try {
     content = fs.readFileSync(path.resolve(root, targetFile), 'utf8');
@@ -100,8 +113,10 @@ function readVersionFromGoMod(root: string, targetFile: string): string | null {
   if (patch !== undefined) {
     return `${major}.${minor}.${patch}`;
   }
-  const latestPatch = LATEST_GO_PATCH_BY_MINOR[`${major}.${minor}`] ?? 0;
-  return `${major}.${minor}.${latestPatch}`;
+  const minorKey = `${major}.${minor}`;
+  return Object.prototype.hasOwnProperty.call(latestPatchVersions, minorKey)
+    ? latestPatchVersions[minorKey]
+    : `${minorKey}.0`;
 }
 
 // Better error message than JSON.parse

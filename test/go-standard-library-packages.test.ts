@@ -97,11 +97,12 @@ test('stdlibVersionFromGoMod derives std version from the go directive', async (
       configuration: {
         includeGoStandardLibraryDeps: true,
         stdlibVersionFromGoMod: true,
+        goLatestPatchVersions: { '1.15': '1.15.15' },
       },
     } as any,
   );
   const fmt = dependencyGraph!.getPkgs().find((p) => p.name === 'std/fmt');
-  t.equal(fmt?.version, '1.15.15', 'go 1.15 maps to latest 1.15 patch');
+  t.equal(fmt?.version, '1.15.15', 'go 1.15 maps to the caller-supplied patch');
 });
 
 test('stdlib version defaults to the local go version', async (t) => {

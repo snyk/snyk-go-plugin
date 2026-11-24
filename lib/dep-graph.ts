@@ -32,6 +32,7 @@ export async function getDepGraph(
   const stdlibVersion = includeGoStandardLibraryDeps
     ? await resolveStdlibVersion(root, targetFile, {
         fromGoMod: configuration?.stdlibVersionFromGoMod ?? false,
+        latestPatchVersions: configuration?.goLatestPatchVersions,
       })
     : 'unknown';
 

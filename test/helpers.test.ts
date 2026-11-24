@@ -21,14 +21,27 @@ test('resolveStdlibVersion picks go directive from go.mod', async (t) => {
   t.ok(version.startsWith('1.'), 'extracts version from go directive');
 });
 
-function resolveWithGoMod(content: string | null, fromGoMod = true) {
+const latestPatchVersions = {
+  '1.21': '1.21.13',
+  '1.22': '1.22.12',
+  '1.23': '1.23.12',
+  '1.24': '1.24.13',
+  '1.27': '1.27.4',
+};
+
+function resolveWithGoMod(
+  content: string | null,
+  fromGoMod = true,
+  patches: Record<string, string> | null = latestPatchVersions,
+) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'stdlib-version-'));
   if (content !== null) {
     fs.writeFileSync(path.join(dir, 'go.mod'), content);
   }
-  return resolveStdlibVersion(dir, targetFile, { fromGoMod }).finally(() =>
-    fs.rmSync(dir, { recursive: true, force: true }),
-  );
+  return resolveStdlibVersion(dir, targetFile, {
+    fromGoMod,
+    latestPatchVersions: patches ?? undefined,
+  }).finally(() => fs.rmSync(dir, { recursive: true, force: true }));
 }
 
 test('fromGoMod: toolchain with patch is used as is', async (t) => {
@@ -70,12 +83,22 @@ test('fromGoMod: go directive with patch is used as is', async (t) => {
 test('fromGoMod: go directive without patch maps to latest patch', async (t) => {
   t.equal(await resolveWithGoMod('module m\n\ngo 1.21\n'), '1.21.13');
   t.equal(await resolveWithGoMod('module m\n\ngo 1.27\n'), '1.27.4');
-  t.equal(await resolveWithGoMod('module m\n\ngo 1.16\n'), '1.16.15');
 });
 
-test('fromGoMod: go directive for a minor not in the table uses .0', async (t) => {
+test('fromGoMod: minor missing from the map uses .0', async (t) => {
   t.equal(await resolveWithGoMod('module m\n\ngo 1.99\n'), '1.99.0');
-  t.equal(await resolveWithGoMod('module m\n\ngo 1.8\n'), '1.8.0');
+  t.equal(await resolveWithGoMod('module m\n\ntoolchain go1.8\n'), '1.8.0');
+});
+
+test('fromGoMod: no map uses .0', async (t) => {
+  t.equal(
+    await resolveWithGoMod('module m\n\ngo 1.22\n', true, null),
+    '1.22.0',
+  );
+});
+
+test('fromGoMod: map does not override a patch in go.mod', async (t) => {
+  t.equal(await resolveWithGoMod('module m\n\ngo 1.22.1\n'), '1.22.1');
 });
 
 test('fromGoMod: commented directives and trailing comments are handled', async (t) => {
