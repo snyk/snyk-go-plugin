@@ -40,17 +40,27 @@ test('component metadata labels on the go modules graph', async (t) => {
   t.ok(hashed.length > 0, 'at least one node carries a hash:sha-256 label');
   for (const l of hashed) {
     t.match(l['hash:sha-256'], SHA256_HEX, 'hash is a lowercase sha-256 hex');
+  }
+
+  // The fixture depends on github.com modules, whose vcs:url is derived from
+  // the module path (the public proxy serves no origin metadata). Assert at
+  // least one such repo URL is present and well formed.
+  const vcsUrls = labelsOf(withMetadata)
+    .map((l: any) => l['vcs:url'])
+    .filter(Boolean);
+  t.ok(vcsUrls.length > 0, 'at least one node carries a vcs:url label');
+  for (const url of vcsUrls) {
     t.match(
-      l['distribution:url'],
-      /^https:\/\/proxy\.golang\.org\/.+\/@v\/.+\.zip$/,
-      'distribution url points at the module proxy',
+      url,
+      /^https:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/[^/]+\/[^/]+$/,
+      'vcs url is a repo root on a known host',
     );
   }
 
   // Disabled: no component metadata labels at all (pruned labels may remain).
   for (const l of labelsOf(withoutMetadata)) {
     t.notOk(l['hash:sha-256'], 'no hash label when disabled');
-    t.notOk(l['distribution:url'], 'no distribution url when disabled');
+    t.notOk(l['vcs:url'], 'no vcs url when disabled');
   }
 });
 

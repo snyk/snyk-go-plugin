@@ -1,7 +1,13 @@
 const H1_PREFIX = 'h1:';
 const SHA256_BYTES = 32;
-const DEFAULT_GOPROXY = 'https://proxy.golang.org';
 const GO_MOD_SUFFIX = '/go.mod';
+
+// Hosts whose module path prefix maps directly onto a repository root, so a
+// VCS URL can be derived from the module path alone (host/owner/repo). Vanity
+// import paths (rsc.io, k8s.io, google.golang.org, gopkg.in, ...) do NOT map
+// this way and are deliberately excluded — for those we only emit a vcs:url
+// when go's own Origin metadata resolves it (see buildVcsUrl).
+const KNOWN_VCS_HOSTS = new Set(['github.com', 'gitlab.com', 'bitbucket.org']);
 
 export type GoSumHashes = Record<string, string>;
 
@@ -31,18 +37,17 @@ export function parseGoSum(goSumContents: string): GoSumHashes {
 
 /**
  * Build the component-metadata labels for a single Go module version. Produces:
- *   - `hash:sha-256`     the module's file-tree hash, decoded to lowercase hex
- *   - `distribution:url` the module proxy download URL for the .zip
- * `h1` is the module's `h1:` hash as recorded in go.sum. `goproxy` is the
- * effective GOPROXY value as reported by `go env GOPROXY` (see
- * buildDistributionUrl). Either label is omitted when it cannot be produced
- * (missing/invalid hash, or no proxy to derive a URL from).
+ *   - `hash:sha-256` the module's file-tree hash, decoded to lowercase hex
+ *   - `vcs:url`      the source repository URL for the module
+ * `h1` is the module's `h1:` hash as recorded in go.sum. `originUrl` is the
+ * repository URL from go's Origin metadata when available (see buildVcsUrl).
+ * Either label is omitted when it cannot be produced (missing/invalid hash, or
+ * no VCS URL that can be resolved).
  */
 export function getComponentMetadataLabels(
   modulePath: string,
-  version: string,
   h1: string | undefined,
-  goproxy?: string,
+  originUrl?: string,
 ): Record<string, string> {
   const labels: Record<string, string> = {};
 
@@ -51,9 +56,9 @@ export function getComponentMetadataLabels(
     labels['hash:sha-256'] = sha256Hex;
   }
 
-  const distributionUrl = buildDistributionUrl(modulePath, version, goproxy);
-  if (distributionUrl) {
-    labels['distribution:url'] = distributionUrl;
+  const vcsUrl = buildVcsUrl(modulePath, originUrl);
+  if (vcsUrl) {
+    labels['vcs:url'] = vcsUrl;
   }
 
   return labels;
@@ -80,58 +85,56 @@ export function decodeH1ToSha256Hex(h1?: string): string | undefined {
 }
 
 /**
- * Derive the module proxy download URL for a module version, e.g.
- * https://proxy.golang.org/github.com/!burnt!sushi/toml/@v/v1.2.3.zip
- * `goproxy` is the effective GOPROXY value as reported by `go env GOPROXY`
- * (which already applies env-var > go-env-file > built-in-default precedence).
- * Honours it when it points at an http(s) proxy; returns undefined for
- * `off`/`direct`/private setups where a public URL would be misleading.
+ * Resolve the source repository URL for a module version.
+ *
+ * Go records nothing about which GOPROXY entry served a module, so a proxy
+ * download URL cannot be attributed reliably. The VCS location, however, is
+ * stable provenance. We resolve it best-effort:
+ *   1. `originUrl` — go's own Origin metadata (VCS URL), which is authoritative
+ *      and resolves vanity paths (e.g. rsc.io/quote -> github.com/rsc/quote).
+ *      Only present when the module was fetched `direct` or from a proxy that
+ *      serves origin data; the public proxy.golang.org does not.
+ *   2. otherwise derive host/owner/repo from the module path for well-known
+ *      VCS hosts (see KNOWN_VCS_HOSTS).
+ * Returns undefined when neither yields a URL (e.g. a vanity path fetched via a
+ * proxy), rather than guessing a URL that would be misleading.
  */
-export function buildDistributionUrl(
+export function buildVcsUrl(
   modulePath: string,
-  version: string,
-  goproxy?: string,
+  originUrl?: string,
 ): string | undefined {
-  const proxy = resolveGoProxyBase(goproxy);
-  if (!proxy) {
-    return undefined;
-  }
-  return `${proxy}/${escapeModulePath(modulePath)}/@v/${escapeModulePath(
-    version,
-  )}.zip`;
+  return normalizeVcsUrl(originUrl) ?? deriveVcsUrlFromModulePath(modulePath);
 }
 
-function resolveGoProxyBase(goproxy: string | undefined): string | undefined {
-  if (!goproxy) {
-    // `go env GOPROXY` returned nothing (or the lookup failed): fall back to
-    // the public proxy, which is also go's built-in default.
-    return DEFAULT_GOPROXY;
-  }
-  // GOPROXY is a list separated by commas or pipes; the first entry wins.
-  const first = goproxy.split(/[,|]/)[0].trim();
-  if (!/^https?:\/\//.test(first)) {
-    // "off", "direct", "none" or empty: no proxy URL we can safely derive.
+// Sanitise a repository URL from go's Origin metadata: keep only http(s) URLs,
+// strip any embedded basic-auth credentials (they must never reach component
+// metadata, which is shipped off-host) and drop trailing slashes. Returns
+// undefined for anything that is not a parseable http(s) URL (e.g. ssh/scp
+// git remotes), leaving the caller to fall back to the path heuristic.
+function normalizeVcsUrl(originUrl?: string): string | undefined {
+  if (!originUrl || !/^https?:\/\//.test(originUrl)) {
     return undefined;
   }
   let parsed: URL;
   try {
-    parsed = new URL(first);
+    parsed = new URL(originUrl);
   } catch {
     return undefined;
   }
-  // Private GOPROXY setups sometimes embed basic-auth credentials in the URL
-  // (e.g. https://user:pass@proxy.corp/). Strip them so they never end up in
-  // component metadata, which is attached to scan results and shipped off-host.
   parsed.username = '';
   parsed.password = '';
   return parsed.toString().replace(/\/+$/, '');
 }
 
-/**
- * Go escapes module paths and versions for case-insensitive filesystems by
- * replacing each uppercase letter with `!` followed by its lowercase form.
- * See https://go.dev/ref/mod#goproxy-protocol
- */
-export function escapeModulePath(value: string): string {
-  return value.replace(/[A-Z]/g, (c) => '!' + c.toLowerCase());
+// Derive a repository URL from a module path for well-known VCS hosts, where
+// the repo root is host/owner/repo. This naturally handles submodule paths
+// (github.com/o/r/sub) and the semantic-import-versioning suffix
+// (github.com/o/r/v2), since both keep the repo root in the first three
+// segments. Returns undefined for any other host.
+function deriveVcsUrlFromModulePath(modulePath: string): string | undefined {
+  const [host, owner, repo] = modulePath.split('/');
+  if (!KNOWN_VCS_HOSTS.has(host) || !owner || !repo) {
+    return undefined;
+  }
+  return `https://${host}/${owner}/${repo}`;
 }
