@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Stub `go` used by sub-process tests. Always fails with a private-module-like
+# stderr sample so runGo's hint path can be exercised without network access.
+echo 'go: github.com/private/mod@v1.0.0: reading https://proxy.golang.org/github.com/private/mod/@v/v1.0.0.info: 404 Not Found' >&2
+exit 1
