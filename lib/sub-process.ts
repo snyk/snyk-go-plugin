@@ -25,10 +25,22 @@ export async function execute(
     spawnOptions.env = { ...process.env, ...options.env };
   }
 
-  spawnOptions.env = cleanSnykEnv(
-    spawnOptions.env as NodeJS.ProcessEnv,
-    process.env,
-  );
+  // Ensure env is defined (it always is due to initialization above)
+  const env = spawnOptions.env as NodeJS.ProcessEnv;
+
+  // Before spawning an external process, we look if we need to restore the system proxy configuration,
+  // which overides the cli internal proxy configuration.
+  if (process.env.SNYK_SYSTEM_HTTP_PROXY !== undefined) {
+    env.HTTP_PROXY = process.env.SNYK_SYSTEM_HTTP_PROXY;
+  }
+  if (process.env.SNYK_SYSTEM_HTTPS_PROXY !== undefined) {
+    env.HTTPS_PROXY = process.env.SNYK_SYSTEM_HTTPS_PROXY;
+  }
+  if (process.env.SNYK_SYSTEM_NO_PROXY !== undefined) {
+    env.NO_PROXY = process.env.SNYK_SYSTEM_NO_PROXY;
+  }
+
+  spawnOptions.env = cleanSnykEnv(env, process.env);
 
   return new Promise((resolve, reject) => {
     let stdout = '';
