@@ -88,3 +88,38 @@ test('std-lib packages carry no component-metadata labels', async (t) => {
     );
   }
 });
+
+test('stdlibVersionFromGoMod derives std version from the go directive', async (t) => {
+  const { dependencyGraph } = await inspect(
+    path.join(__dirname, 'fixtures', 'gomod-go-directive'),
+    targetFile,
+    {
+      configuration: {
+        includeGoStandardLibraryDeps: true,
+        stdlibVersionFromGoMod: true,
+        goLatestPatchVersions: { '1.15': '1.15.15' },
+      },
+    } as any,
+  );
+  const fmt = dependencyGraph!.getPkgs().find((p) => p.name === 'std/fmt');
+  t.equal(fmt?.version, '1.15.15', 'go 1.15 maps to the caller-supplied patch');
+});
+
+test('stdlib version defaults to the local go version', async (t) => {
+  const { dependencyGraph } = await inspect(
+    path.join(__dirname, 'fixtures', 'gomod-go-directive'),
+    targetFile,
+    { configuration: { includeGoStandardLibraryDeps: true } } as any,
+  );
+  const fmt = dependencyGraph!.getPkgs().find((p) => p.name === 'std/fmt');
+  t.equal(fmt?.version, fullGoVersion);
+});
+
+test('stdlibVersionFromGoMod is ignored without includeGoStandardLibraryDeps', async (t) => {
+  const { dependencyGraph } = await inspect(
+    path.join(__dirname, 'fixtures', 'gomod-go-directive'),
+    targetFile,
+    { configuration: { stdlibVersionFromGoMod: true } } as any,
+  );
+  t.notOk(dependencyGraph!.getPkgs().some((p) => p.name === 'std/fmt'));
+});

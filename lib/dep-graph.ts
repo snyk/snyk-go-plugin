@@ -30,7 +30,10 @@ export async function getDepGraph(
 
   // Determine stdlib version
   const stdlibVersion = includeGoStandardLibraryDeps
-    ? await resolveStdlibVersion(root, targetFile)
+    ? await resolveStdlibVersion(root, targetFile, {
+        fromGoMod: configuration?.stdlibVersionFromGoMod ?? false,
+        latestPatchVersions: configuration?.goLatestPatchVersions,
+      })
     : 'unknown';
 
   const useReplaceName = configuration?.useReplaceName ?? false;

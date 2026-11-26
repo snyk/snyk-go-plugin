@@ -33,6 +33,18 @@ export interface Options {
   includeComponentMetadata?: boolean;
   configuration?: {
     includeGoStandardLibraryDeps?: boolean;
+    /**
+     * Take the version of standard library nodes from go.mod (`toolchain`
+     * line, else `go` directive) instead of the local Go installation.
+     * Only applies with includeGoStandardLibraryDeps. Default: false.
+     */
+    stdlibVersionFromGoMod?: boolean;
+    /**
+     * Latest patch version per minor, keyed by 'X.Y', e.g.
+     * { '1.22': '1.22.12' }. Used with stdlibVersionFromGoMod when go.mod
+     * gives no patch. A minor that is not listed maps to X.Y.0.
+     */
+    goLatestPatchVersions?: Record<string, string>;
     includePackageUrls?: boolean;
     /**
      * Temporary config value to enable proper identification
